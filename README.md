@@ -62,7 +62,7 @@ cd RebelShipBrowser
 dotnet build RebelShipBrowser.sln -c Release
 ```
 
-## Questions Problems?
+## Questions or Problems?
 
 Join the [Discord](https://discord.gg/rw4yKxp7Mv)
 
