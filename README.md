@@ -62,6 +62,11 @@ cd rebelship-browser
 dotnet build RebelShipBrowser.sln -c Release
 ```
 
+## Questions Problems?
+
+Join the [Discord](https://discord.gg/rw4yKxp7Mv)
+
+
 ## License
 
 [Licence](.\LICENSE)
