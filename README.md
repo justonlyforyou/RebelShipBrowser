@@ -52,8 +52,8 @@ Fire up Steam and launch Shippingmanager *once*. Close it down after ye see the 
 
 ```powershell
 # Hijack the blueprints (Clone the repository)
-git clone [https://github.com/your-repo/rebelship-browser.git](https://github.com/your-repo/rebelship-browser.git)
-cd rebelship-browser
+git clone [https://github.com/justonlyforyou/RebelShipBrowser.git](https://github.com/justonlyforyou/RebelShipBrowser.git)
+cd RebelShipBrowser
 
 # Hammer the ship together using the script (reads version from VERSION file)
 .\build\build.ps1
