@@ -1,76 +1,66 @@
 <img src="logo.png" width="100" height="100" alt="RebelShip Browser Logo">
 
-# RebelShip Browser
+# 🏴‍☠️ The RebelShip Browser 🏴‍☠️
 
-This tiny tool is gift to all my friends and steam players of the game [Shippingmanager.cc](https://shippingmanager.cc)
-to provide a possiblity playing the Steam-Version in a browser without the stupid T-Stroke bug.
-So you can rename everthing or chat with others again, without any problems.
+**Avast, ye scurvy dogs!** This tiny tool be a treasure gifted to all me hearties and Steam-sailors of the game **Shippingmanager.cc**. It lets ye play the Steam version in a browser without that cursed **T-Stroke bug** (blimey!). Now ye can finally christen yer ships proper-like or parley with other captains in the chat without yer quill breakin' or the ink runnin' dry!
 
-## Features
+### 💎 The Booty (Features)
 
-- **Auto-Login**: Extracts session cookie from Steam and logs you in automatically
-- **System Tray**: Minimizes to tray, runs in background
-- **Quick Access**: Double-click tray icon to restore window
-- **Re-Login**: Easy re-extraction of session if needed
+* **Auto-Login (Boarding Party):** We plunder the session cookie straight from Steam and get ye aboard automatically. No secret codes needed!
+* **System Tray (The Crow’s Nest):** Keeps a weather eye open in the background. Minimizes to the tray so it don’t clutter yer deck.
+* **Quick Access:** Double-tap the icon to bring her about and restore the window in a flash.
+* **Re-Login:** If the seas get rough, we grab the key again. Easy peasy.
 
-## Requirements
+### 📜 The Ship’s Articles (Requirements)
 
-- Windows 10/11
-- .NET 8.0 Runtime (included in installer)
-- Steam installed and logged into shippingmanager.cc
+* A sturdy hull running **Windows 10/11**.
+* The right rigging: **.NET 8.0 Runtime** (we packed it in the crate for ye).
+* **Steam** must be docked (installed) and ye must have sailed **shippingmanager.cc** at least once.
 
-## How it Works
+### 🧭 How to Navigate (How it Works)
 
-**Pre-Task**: Start Steam and start Shippingmanager once and close it
-afterwards the login was successful. This pre-task is required so Steam
-is able to store your Auth-Cookie.
+**Before we weigh anchor:**
+Fire up Steam and launch Shippingmanager *once*. Close it down after ye see the harbor (successful login). We need Steam to stash yer **Auth-Cookie** in the chest first!
 
-1. On startup, the app extracts your session Auth-Cookie from Steam's browser cache
-2. Steam is temporarily stopped if running (then restarted)
-3. The cookie is injected into the built-in browser before loading the page
-4. You are automatically logged in - no manual login required
-5. Exit deletes all cookies and cache
+1.  **On Startup:** The app raids Steam’s browser cache to find yer shiny session cookie.
+2.  **The Switch:** We briefly keelhaul Steam (stop it) and hoist it back up.
+3.  **Injection:** We slip that cookie into our browser like a thief in the night.
+4.  **Full Sail:** Ye be logged in automatically—no need to lift a finger!
+5.  **Abandon Ship (Exit):** Closing the app scrubs the deck clean. All cookies and cache are sent to Davy Jones' locker.
 
-## What not does
+### 🚫 The Pirate Code (What it DOESN'T do)
 
-1. Does not talk to somewhere else, execpt shippingmanager.cc and their related URL's!
-2. Does not enable AD's people have on the mobile app version!
-3. Does not enable any other feature!
+* **No Blabberin':** We don't talk to foreign powers! We only signal to `shippingmanager.cc` and their related URL's.
+* **No Sirens with Loot**: Sadly, we can't lure those mobile ads aboard this vessel. That means no watching ads for free bonus points here. Ye’ll have to earn yer gold the hard way, alas!
+* **No Black Magic:** No cheats, no extra cannons.
+* **Just Smooth Sailing:** Play yer game in a browser without the barnacles and bugs ye faced using the official Steam tub provided by Trophy Games. Yarrr! 🦜
 
-Just play your game in a browser without the bugs you're faced
-with while using the official steam version provided by Trophy Games.
+## 🔨 Raising the Flag (Installation)
 
-## Installation
+1.  Snatch the latest `RebelShipBrowser-Setup-vX.X.X.exe` from the [Releases](https://github.com/justonlyforyou/RebelShipBrowser/releases/) cove.
+2.  Crack open the installer keg (Run it).
+3.  Grab the helm from the Start Menu or yer Desktop shortcut.
 
-1. Download the latest `RebelShipBrowser-Setup-vX.X.X.exe` from Releases
-2. Run the installer
-3. Launch from Start Menu or Desktop shortcut
+## ⚔️ Forging Yer Own Ship (Building from Source)
 
-## Building from Source
+### 🧰 Shipwright Tools (Prerequisites)
 
-### Prerequisites
+- **.NET 8.0 SDK** (Essential tools for the trade)
+- **Windows 10/11** (A proper shipyard)
 
-- .NET 8.0 SDK
-- Windows 10/11
-
-### Build
+### 🏗️ Constructing the Vessel (Build)
 
 ```powershell
-# Clone the repository
-git clone https://github.com/your-repo/rebelship-browser.git
+# Hijack the blueprints (Clone the repository)
+git clone [https://github.com/your-repo/rebelship-browser.git](https://github.com/your-repo/rebelship-browser.git)
 cd rebelship-browser
 
-# Build using the build script (reads version from VERSION file)
+# Hammer the ship together using the script (reads version from VERSION file)
 .\build\build.ps1
 
-# Or build manually (version will be 0.0.0)
+# Or build it by hand like a true craftsman (version will be 0.0.0)
 dotnet build RebelShipBrowser.sln -c Release
 ```
-
-### Output
-
-- `publish/RebelShipBrowser-Setup-vX.X.X.exe` - Installer
-- `publish/app/` - Application files
 
 ## License
 
