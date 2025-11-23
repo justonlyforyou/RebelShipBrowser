@@ -115,7 +115,7 @@ namespace RebelShipBrowser.Installer
             }
         }
 
-        private void LaunchApplication()
+        private static void LaunchApplication()
         {
             try
             {

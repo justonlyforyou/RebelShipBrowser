@@ -80,7 +80,7 @@ namespace RebelShipBrowser.Installer
             }
         }
 
-        private void KillRunningInstances()
+        private static void KillRunningInstances()
         {
             try
             {
@@ -96,7 +96,7 @@ namespace RebelShipBrowser.Installer
             }
         }
 
-        private void DeleteShortcuts()
+        private static void DeleteShortcuts()
         {
             try
             {
@@ -116,7 +116,7 @@ namespace RebelShipBrowser.Installer
             }
         }
 
-        private void DeleteInstallDirectory()
+        private static void DeleteInstallDirectory()
         {
             try
             {
@@ -131,7 +131,7 @@ namespace RebelShipBrowser.Installer
             }
         }
 
-        private void RemoveRegistryEntries()
+        private static void RemoveRegistryEntries()
         {
             try
             {

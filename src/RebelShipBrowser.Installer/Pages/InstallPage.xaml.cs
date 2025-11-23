@@ -129,8 +129,8 @@ namespace RebelShipBrowser.Installer.Pages
 
             // Remove any path traversal attempts
             var sanitized = entryPath
-                .Replace("..", string.Empty)
-                .Replace(":", string.Empty);
+                .Replace("..", string.Empty, StringComparison.Ordinal)
+                .Replace(":", string.Empty, StringComparison.Ordinal);
 
             // Normalize separators
             sanitized = sanitized.Replace('/', Path.DirectorySeparatorChar);
@@ -141,7 +141,7 @@ namespace RebelShipBrowser.Installer.Pages
             return string.IsNullOrEmpty(sanitized) ? null : sanitized;
         }
 
-        private void CopyDirectory(string sourceDir, string destDir)
+        private static void CopyDirectory(string sourceDir, string destDir)
         {
             Directory.CreateDirectory(destDir);
 
@@ -169,22 +169,22 @@ namespace RebelShipBrowser.Installer.Pages
             CreateShortcutViaPowerShell(DesktopPath, exePath, "RebelShip Browser");
         }
 
-        private void CreateShortcutViaPowerShell(string shortcutPath, string targetPath, string description)
+        private static void CreateShortcutViaPowerShell(string shortcutPath, string targetPath, string description)
         {
             try
             {
                 var script = $@"
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut('{shortcutPath.Replace("'", "''")}')
-$Shortcut.TargetPath = '{targetPath.Replace("'", "''")}'
-$Shortcut.WorkingDirectory = '{Path.GetDirectoryName(targetPath)?.Replace("'", "''")}'
+$Shortcut = $WshShell.CreateShortcut('{shortcutPath.Replace("'", "''", StringComparison.Ordinal)}')
+$Shortcut.TargetPath = '{targetPath.Replace("'", "''", StringComparison.Ordinal)}'
+$Shortcut.WorkingDirectory = '{Path.GetDirectoryName(targetPath)?.Replace("'", "''", StringComparison.Ordinal)}'
 $Shortcut.Description = '{description}'
 $Shortcut.Save()
 ";
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"", StringComparison.Ordinal)}\"",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
@@ -207,7 +207,7 @@ $Shortcut.Save()
             return version?.ToString(3) ?? "0.0.0";
         }
 
-        private void RegisterUninstaller()
+        private static void RegisterUninstaller()
         {
             try
             {

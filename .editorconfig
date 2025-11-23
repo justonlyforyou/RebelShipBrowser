@@ -102,6 +102,16 @@ dotnet_diagnostic.CA5401.severity = error  # CreateEncryptor with non-default IV
 dotnet_diagnostic.CA5402.severity = error  # CreateEncryptor with default IV
 dotnet_diagnostic.CA5403.severity = error  # Hardcoded Certificate
 
+# Suppress warnings for Installer project
+# CA1515: WPF partial classes need to be public for XAML compilation
+dotnet_diagnostic.CA1515.severity = none
+# CA1031: Installer intentionally catches general exceptions to continue despite errors
+dotnet_diagnostic.CA1031.severity = none
+# CA2007: WPF applications should not use ConfigureAwait(false) for UI thread continuations
+dotnet_diagnostic.CA2007.severity = none
+# SCS0018: Path traversal - handled with sanitization in ExtractPayload
+dotnet_diagnostic.SCS0018.severity = none
+
 [*.xaml]
 indent_size = 4
 

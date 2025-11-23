@@ -6,6 +6,8 @@ namespace RebelShipBrowser.Installer
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            ArgumentNullException.ThrowIfNull(e);
+
             base.OnStartup(e);
 
             // Check if started in uninstall mode
