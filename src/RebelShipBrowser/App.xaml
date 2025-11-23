@@ -1,0 +1,17 @@
+<Application x:Class="RebelShipBrowser.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- Dark Theme Colors -->
+        <SolidColorBrush x:Key="BackgroundColor" Color="#0f172a"/>
+        <SolidColorBrush x:Key="CardBackground" Color="#1e293b"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#334155"/>
+        <SolidColorBrush x:Key="TextColor" Color="#f1f5f9"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#94a3b8"/>
+        <SolidColorBrush x:Key="PrimaryColor" Color="#3b82f6"/>
+        <SolidColorBrush x:Key="SuccessColor" Color="#22c55e"/>
+        <SolidColorBrush x:Key="WarningColor" Color="#f59e0b"/>
+        <SolidColorBrush x:Key="ErrorColor" Color="#ef4444"/>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    <AssemblyName>RebelShipBrowser</AssemblyName>
+    <!-- Version is set during build via -p:Version parameter -->
+    <Version>0.0.0</Version>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
+    <FileVersion>0.0.0.0</FileVersion>
+    <Authors>justonlyforyou</Authors>
+    <Product>RebelShip Browser</Product>
+    <Description>Standalone browser for RebelShip with Steam auto-login</Description>
+    <Copyright>Copyright 2025</Copyright>
+    <!-- Code Analysis -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <!-- Security Analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\icon.ico" />
+    <Content Include="Resources\icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

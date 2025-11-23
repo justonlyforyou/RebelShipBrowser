@@ -1,0 +1,109 @@
+# EditorConfig for RebelShip Browser
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+# Code style
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_prefer_braces = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+
+# Formatting
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# Naming conventions
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
+dotnet_naming_style.underscore_prefix.required_prefix = _
+
+# Private fields should be _camelCase
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = warning
+dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case.style = underscore_prefix
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+# Security - treat these as errors
+dotnet_diagnostic.CA2100.severity = error  # SQL Injection
+dotnet_diagnostic.CA3001.severity = error  # SQL Injection
+dotnet_diagnostic.CA3002.severity = error  # XSS
+dotnet_diagnostic.CA3003.severity = error  # File Path Injection
+dotnet_diagnostic.CA3004.severity = error  # Information Disclosure
+dotnet_diagnostic.CA3005.severity = error  # LDAP Injection
+dotnet_diagnostic.CA3006.severity = error  # Process Command Injection
+dotnet_diagnostic.CA3007.severity = error  # Open Redirect
+dotnet_diagnostic.CA3008.severity = error  # XPath Injection
+dotnet_diagnostic.CA3009.severity = error  # XML Injection
+dotnet_diagnostic.CA3010.severity = error  # XAML Injection
+dotnet_diagnostic.CA3011.severity = error  # DLL Injection
+dotnet_diagnostic.CA3012.severity = error  # Regex Injection
+dotnet_diagnostic.CA5350.severity = error  # Weak Crypto
+dotnet_diagnostic.CA5351.severity = error  # Broken Crypto
+dotnet_diagnostic.CA5359.severity = error  # Disable Certificate Validation
+dotnet_diagnostic.CA5360.severity = error  # Dangerous Deserialization
+dotnet_diagnostic.CA5361.severity = error  # SChannel Weak Crypto
+dotnet_diagnostic.CA5362.severity = error  # Potential Reference Cycle
+dotnet_diagnostic.CA5363.severity = error  # Disable Request Validation
+dotnet_diagnostic.CA5364.severity = error  # Obsolete Security Protocols
+dotnet_diagnostic.CA5365.severity = error  # HTTP Header Checking
+dotnet_diagnostic.CA5366.severity = error  # XmlReader for DataSet
+dotnet_diagnostic.CA5367.severity = error  # Serialization with Type Data
+dotnet_diagnostic.CA5368.severity = error  # ViewState MAC
+dotnet_diagnostic.CA5369.severity = error  # XmlReader for Deserialize
+dotnet_diagnostic.CA5370.severity = error  # XmlReader for Validating
+dotnet_diagnostic.CA5371.severity = error  # XmlReader for Schema
+dotnet_diagnostic.CA5372.severity = error  # XPathDocument constructor
+dotnet_diagnostic.CA5373.severity = error  # Obsolete KDF
+dotnet_diagnostic.CA5374.severity = error  # Do Not Use XslTransform
+dotnet_diagnostic.CA5375.severity = error  # Account SAS
+dotnet_diagnostic.CA5376.severity = error  # SharedAccessProtocol
+dotnet_diagnostic.CA5377.severity = error  # Container Level Access Policy
+dotnet_diagnostic.CA5378.severity = error  # ServicePointManager
+dotnet_diagnostic.CA5379.severity = error  # Weak KDF
+dotnet_diagnostic.CA5380.severity = error  # Root Cert in Cert Store
+dotnet_diagnostic.CA5381.severity = error  # Cert Root Store
+dotnet_diagnostic.CA5382.severity = error  # Secure Cookies
+dotnet_diagnostic.CA5383.severity = error  # Secure Cookies ASP.NET
+dotnet_diagnostic.CA5384.severity = error  # DSA
+dotnet_diagnostic.CA5385.severity = error  # RSA Key Size
+dotnet_diagnostic.CA5386.severity = error  # Hardcoded SecurityProtocolType
+dotnet_diagnostic.CA5387.severity = error  # Weak KDF Iteration
+dotnet_diagnostic.CA5388.severity = error  # Sufficient KDF Iteration
+dotnet_diagnostic.CA5389.severity = error  # Archive Item Path
+dotnet_diagnostic.CA5390.severity = error  # Hardcoded Encryption Key
+dotnet_diagnostic.CA5391.severity = error  # Antiforgery Token
+dotnet_diagnostic.CA5392.severity = error  # DefaultDllImportSearchPaths
+dotnet_diagnostic.CA5393.severity = error  # Unsafe DllImportSearchPath
+dotnet_diagnostic.CA5394.severity = warning  # Non-random Random
+dotnet_diagnostic.CA5395.severity = error  # HttpVerb Attribute
+dotnet_diagnostic.CA5396.severity = error  # HttpOnly Cookies
+dotnet_diagnostic.CA5397.severity = error  # Deprecated SslProtocols
+dotnet_diagnostic.CA5398.severity = error  # Hardcoded SslProtocols
+dotnet_diagnostic.CA5399.severity = error  # HttpClient Certificate Revocation
+dotnet_diagnostic.CA5400.severity = error  # HttpClient Certificate Revocation List
+dotnet_diagnostic.CA5401.severity = error  # CreateEncryptor with non-default IV
+dotnet_diagnostic.CA5402.severity = error  # CreateEncryptor with default IV
+dotnet_diagnostic.CA5403.severity = error  # Hardcoded Certificate
+
+[*.xaml]
+indent_size = 4
+
+[*.{json,xml,csproj}]
+indent_size = 2

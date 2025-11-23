@@ -1,0 +1,97 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Read version from VERSION file
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ([string]::IsNullOrEmpty($version)) {
+            Write-Error "VERSION file is empty"
+            exit 1
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version: $version"
+
+      - name: Restore dependencies
+        run: dotnet restore RebelShipBrowser.sln
+
+      - name: Build Main Application
+        run: |
+          dotnet publish src/RebelShipBrowser/RebelShipBrowser.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:Version=${{ steps.version.outputs.VERSION }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.VERSION }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.VERSION }}.0 `
+            -o publish/app
+
+      - name: Create payload zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path publish/app/* -DestinationPath src/RebelShipBrowser.Installer/Resources/app-payload.zip -Force
+
+      - name: Build Installer
+        run: |
+          dotnet publish src/RebelShipBrowser.Installer/RebelShipBrowser.Installer.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:Version=${{ steps.version.outputs.VERSION }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.VERSION }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.VERSION }}.0 `
+            -o publish/installer
+
+      - name: Rename artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          Move-Item publish/installer/Setup.exe "publish/RebelShipBrowser-Setup-v${version}.exe" -Force
+
+      - name: Upload Application Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RebelShipBrowser-App-${{ steps.version.outputs.VERSION }}
+          path: publish/app/
+          retention-days: 30
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RebelShipBrowser-Setup-${{ steps.version.outputs.VERSION }}
+          path: publish/RebelShipBrowser-Setup-*.exe
+          retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            publish/RebelShipBrowser-Setup-*.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

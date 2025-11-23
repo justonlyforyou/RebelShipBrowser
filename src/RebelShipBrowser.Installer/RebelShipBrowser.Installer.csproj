@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    <AssemblyName>Setup</AssemblyName>
+    <!-- Version is set during build via -p:Version parameter -->
+    <Version>0.0.0</Version>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
+    <FileVersion>0.0.0.0</FileVersion>
+    <Authors>justonlyforyou</Authors>
+    <Product>RebelShip Browser Installer</Product>
+    <Description>Installer for RebelShip Browser</Description>
+    <Copyright>Copyright 2025</Copyright>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Code Analysis -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embedded application payload (created by build script) -->
+    <EmbeddedResource Include="Resources\app-payload.zip" Condition="Exists('Resources\app-payload.zip')" />
+    <Resource Include="Resources\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Security Analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

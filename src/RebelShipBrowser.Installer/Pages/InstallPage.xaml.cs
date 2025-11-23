@@ -1,0 +1,241 @@
+using System.IO;
+using System.IO.Compression;
+using System.Reflection;
+using System.Windows.Controls;
+using Microsoft.Win32;
+
+namespace RebelShipBrowser.Installer.Pages
+{
+    public partial class InstallPage : Page
+    {
+        private static readonly string InstallPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "RebelShipBrowser"
+        );
+
+        private static readonly string StartMenuPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+            "RebelShip Browser.lnk"
+        );
+
+        private static readonly string DesktopPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            "RebelShip Browser.lnk"
+        );
+
+        public InstallPage()
+        {
+            InitializeComponent();
+        }
+
+        public async Task RunInstallationAsync()
+        {
+            await Task.Run(async () =>
+            {
+                // Step 1: Extract payload
+                await UpdateProgressAsync("Extracting files...", 10);
+                ExtractPayload();
+
+                // Step 2: Create shortcuts
+                await UpdateProgressAsync("Creating shortcuts...", 50);
+                CreateShortcuts();
+
+                // Step 3: Register uninstaller
+                await UpdateProgressAsync("Registering application...", 80);
+                RegisterUninstaller();
+
+                // Complete
+                await UpdateProgressAsync("Installation complete!", 100);
+            });
+        }
+
+        private async Task UpdateProgressAsync(string status, int progress)
+        {
+            await Dispatcher.InvokeAsync(() =>
+            {
+                StatusText.Text = status;
+                ProgressBar.Value = progress;
+                ProgressText.Text = $"{progress}%";
+            });
+
+            // Small delay to show progress
+            await Task.Delay(300);
+        }
+
+        private void ExtractPayload()
+        {
+            // Create install directory
+            Directory.CreateDirectory(InstallPath);
+
+            // Try to extract embedded payload
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("app-payload.zip", StringComparison.OrdinalIgnoreCase));
+
+            if (resourceName != null)
+            {
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+                    foreach (var entry in archive.Entries)
+                    {
+                        // Sanitize path to prevent path traversal attacks (CA5389)
+                        var sanitizedName = SanitizeEntryPath(entry.FullName);
+                        if (string.IsNullOrEmpty(sanitizedName))
+                        {
+                            continue;
+                        }
+
+                        var destPath = Path.GetFullPath(Path.Combine(InstallPath, sanitizedName));
+
+                        // Ensure destination is within install directory
+                        if (!destPath.StartsWith(InstallPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var destDir = Path.GetDirectoryName(destPath);
+
+                        if (!string.IsNullOrEmpty(destDir))
+                        {
+                            Directory.CreateDirectory(destDir);
+                        }
+
+                        if (!string.IsNullOrEmpty(entry.Name))
+                        {
+                            entry.ExtractToFile(destPath, overwrite: true);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Development mode: Copy from build output
+                var sourceDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "RebelShipBrowser", "bin", "Release", "net8.0-windows10.0.19041.0");
+                if (Directory.Exists(sourceDir))
+                {
+                    CopyDirectory(sourceDir, InstallPath);
+                }
+            }
+        }
+
+        private static string? SanitizeEntryPath(string entryPath)
+        {
+            if (string.IsNullOrEmpty(entryPath))
+            {
+                return null;
+            }
+
+            // Remove any path traversal attempts
+            var sanitized = entryPath
+                .Replace("..", string.Empty)
+                .Replace(":", string.Empty);
+
+            // Normalize separators
+            sanitized = sanitized.Replace('/', Path.DirectorySeparatorChar);
+
+            // Remove leading separators
+            sanitized = sanitized.TrimStart(Path.DirectorySeparatorChar);
+
+            return string.IsNullOrEmpty(sanitized) ? null : sanitized;
+        }
+
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                var destFile = Path.Combine(destDir, Path.GetFileName(file));
+                File.Copy(file, destFile, overwrite: true);
+            }
+
+            foreach (var dir in Directory.GetDirectories(sourceDir))
+            {
+                var destSubDir = Path.Combine(destDir, Path.GetFileName(dir));
+                CopyDirectory(dir, destSubDir);
+            }
+        }
+
+        private void CreateShortcuts()
+        {
+            var exePath = Path.Combine(InstallPath, "RebelShipBrowser.exe");
+
+            // Start Menu shortcut using PowerShell
+            CreateShortcutViaPowerShell(StartMenuPath, exePath, "RebelShip Browser");
+
+            // Desktop shortcut using PowerShell
+            CreateShortcutViaPowerShell(DesktopPath, exePath, "RebelShip Browser");
+        }
+
+        private void CreateShortcutViaPowerShell(string shortcutPath, string targetPath, string description)
+        {
+            try
+            {
+                var script = $@"
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut('{shortcutPath.Replace("'", "''")}')
+$Shortcut.TargetPath = '{targetPath.Replace("'", "''")}'
+$Shortcut.WorkingDirectory = '{Path.GetDirectoryName(targetPath)?.Replace("'", "''")}'
+$Shortcut.Description = '{description}'
+$Shortcut.Save()
+";
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var process = System.Diagnostics.Process.Start(startInfo);
+                process?.WaitForExit(5000);
+            }
+            catch
+            {
+                // Ignore shortcut creation errors
+            }
+        }
+
+        private static string GetVersion()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            return version?.ToString(3) ?? "0.0.0";
+        }
+
+        private void RegisterUninstaller()
+        {
+            try
+            {
+                var uninstallKey = Registry.CurrentUser.CreateSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\RebelShipBrowser"
+                );
+
+                if (uninstallKey != null)
+                {
+                    var exePath = Path.Combine(InstallPath, "RebelShipBrowser.exe");
+                    var setupPath = Environment.ProcessPath ?? "";
+
+                    uninstallKey.SetValue("DisplayName", "RebelShip Browser");
+                    uninstallKey.SetValue("DisplayVersion", GetVersion());
+                    uninstallKey.SetValue("Publisher", "justonlyforyou");
+                    uninstallKey.SetValue("InstallLocation", InstallPath);
+                    uninstallKey.SetValue("DisplayIcon", exePath);
+                    uninstallKey.SetValue("UninstallString", $"\"{setupPath}\" /uninstall");
+                    uninstallKey.SetValue("NoModify", 1);
+                    uninstallKey.SetValue("NoRepair", 1);
+
+                    uninstallKey.Close();
+                }
+            }
+            catch
+            {
+                // Ignore registry errors
+            }
+        }
+    }
+}

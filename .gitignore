@@ -1,0 +1,106 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+publish/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+.claude/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build artifacts
+*.cache
+*.ilk
+*.meta
+*.iobj
+*.pch
+*.ipch
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.vspscc
+*.vssscc
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Installer payload (generated during build)
+**/Resources/app-payload.zip
+
+# User-specific files
+*.rsuser
+*.pidb
+*.svclog
+*.scc
+
+# Mono
+*.mdb
+*.opendb
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Sensitive data - NEVER commit
+*.env
+*.key
+*.pem
+*.pfx
+*.p12
+credentials.json
+secrets.json
