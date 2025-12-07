@@ -48,8 +48,14 @@ namespace RebelShipBrowser.Services
         {
             get
             {
-                if (File.Exists(CookiePathNew)) return CookiePathNew;
-                if (File.Exists(CookiePathOld)) return CookiePathOld;
+                if (File.Exists(CookiePathNew))
+                {
+                    return CookiePathNew;
+                }
+                if (File.Exists(CookiePathOld))
+                {
+                    return CookiePathOld;
+                }
                 return null;
             }
         }
@@ -61,8 +67,14 @@ namespace RebelShipBrowser.Services
         {
             get
             {
-                if (File.Exists(LocalStatePathNew)) return LocalStatePathNew;
-                if (File.Exists(LocalStatePathOld)) return LocalStatePathOld;
+                if (File.Exists(LocalStatePathNew))
+                {
+                    return LocalStatePathNew;
+                }
+                if (File.Exists(LocalStatePathOld))
+                {
+                    return LocalStatePathOld;
+                }
                 return null;
             }
         }
