@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -32,15 +33,19 @@ namespace RebelShipBrowser.Installer.Pages
         {
             await Task.Run(async () =>
             {
-                // Step 1: Extract payload
+                // Step 1: Close running instances
+                await UpdateProgressAsync("Checking for running instances...", 5);
+                CloseRunningInstances();
+
+                // Step 2: Extract payload
                 await UpdateProgressAsync("Extracting files...", 10);
                 ExtractPayload();
 
-                // Step 2: Create shortcuts
+                // Step 3: Create shortcuts
                 await UpdateProgressAsync("Creating shortcuts...", 50);
                 CreateShortcuts();
 
-                // Step 3: Register uninstaller
+                // Step 4: Register uninstaller
                 await UpdateProgressAsync("Registering application...", 80);
                 RegisterUninstaller();
 
@@ -60,6 +65,36 @@ namespace RebelShipBrowser.Installer.Pages
 
             // Small delay to show progress
             await Task.Delay(300);
+        }
+
+        private static void CloseRunningInstances()
+        {
+            try
+            {
+                var processes = Process.GetProcessesByName("RebelShipBrowser");
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        process.Kill();
+                        process.WaitForExit(5000);
+                    }
+                    catch
+                    {
+                        // Ignore errors killing individual processes
+                    }
+                }
+
+                // Wait a bit for file handles to be released
+                if (processes.Length > 0)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+            catch
+            {
+                // Ignore errors finding processes
+            }
         }
 
         private void ExtractPayload()
