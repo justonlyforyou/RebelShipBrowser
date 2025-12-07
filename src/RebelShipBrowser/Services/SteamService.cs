@@ -11,6 +11,11 @@ namespace RebelShipBrowser.Services
         private const string TargetDomain = "shippingmanager.cc";
         private const string TargetCookieName = "shipping_manager_session";
 
+        static SteamService()
+        {
+            DebugLogger.Log("=== SteamService initialized ===");
+        }
+
         private static readonly string HtmlCacheBase = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Steam", "htmlcache"
@@ -185,21 +190,30 @@ namespace RebelShipBrowser.Services
         /// <returns>Session cookie value or null if extraction fails</returns>
         public static async Task<string?> ExtractSessionCookieAsync()
         {
+            DebugLogger.Log("ExtractSessionCookieAsync: Starting cookie extraction");
+
             // Check if Steam files exist
             var cookiePath = CookiePath;
             var localStatePath = LocalStatePath;
 
+            DebugLogger.Log($"Cookie path: {cookiePath ?? "NOT FOUND"}");
+            DebugLogger.Log($"LocalState path: {localStatePath ?? "NOT FOUND"}");
+
             if (cookiePath == null || localStatePath == null)
             {
+                DebugLogger.LogError("Cookie extraction failed: Steam files not found");
                 return null;
             }
 
             // Get AES key
+            DebugLogger.Log("Attempting to extract AES key...");
             var aesKey = CookieDecryptor.GetAesKey(localStatePath);
             if (aesKey == null)
             {
+                DebugLogger.LogError("Failed to extract AES key from LocalState");
                 return null;
             }
+            DebugLogger.Log("AES key extracted successfully");
 
             // Try to read from database (may need to copy if locked)
             string dbPath = cookiePath;
@@ -207,32 +221,51 @@ namespace RebelShipBrowser.Services
 
             try
             {
+                DebugLogger.Log($"Reading cookie database: {dbPath}");
+
                 // First try direct access
                 var encryptedCookie = CookieDecryptor.GetEncryptedCookieFromDb(dbPath, TargetDomain, TargetCookieName);
 
                 // If failed (likely locked), copy the database
                 if (encryptedCookie == null && IsSteamRunning())
                 {
+                    DebugLogger.Log("Direct access failed (likely locked), copying database...");
                     tempDbPath = CookieDecryptor.CopyDatabaseIfLocked(dbPath);
                     if (tempDbPath != dbPath)
                     {
+                        DebugLogger.Log($"Database copied to: {tempDbPath}");
                         encryptedCookie = CookieDecryptor.GetEncryptedCookieFromDb(tempDbPath, TargetDomain, TargetCookieName);
                     }
                 }
 
                 if (encryptedCookie == null)
                 {
+                    DebugLogger.LogError($"Cookie '{TargetCookieName}' not found in database for domain '{TargetDomain}'");
                     return null;
                 }
 
-                // Decrypt the cookie
-                return CookieDecryptor.DecryptCookieValue(encryptedCookie, aesKey);
+                DebugLogger.Log("Encrypted cookie found, decrypting...");
+
+                // Decrypt the cookie (DO NOT LOG THE DECRYPTED VALUE!)
+                var decryptedCookie = CookieDecryptor.DecryptCookieValue(encryptedCookie, aesKey);
+
+                if (decryptedCookie != null)
+                {
+                    DebugLogger.Log("Cookie decrypted successfully (length: " + decryptedCookie.Length + ")");
+                }
+                else
+                {
+                    DebugLogger.LogError("Failed to decrypt cookie");
+                }
+
+                return decryptedCookie;
             }
             finally
             {
                 // Cleanup temp database if created
                 if (tempDbPath != null && tempDbPath != dbPath)
                 {
+                    DebugLogger.Log("Cleaning up temporary database...");
                     await Task.Run(() => CookieDecryptor.CleanupTempDatabase(tempDbPath));
                 }
             }
@@ -246,18 +279,24 @@ namespace RebelShipBrowser.Services
         /// <returns>Session cookie value or null</returns>
         public static async Task<string?> ExtractWithSteamManagementAsync(bool restartSteam = true, CancellationToken ct = default)
         {
+            DebugLogger.Log("=== ExtractWithSteamManagementAsync: Starting full extraction flow ===");
+
             bool steamWasRunning = IsSteamRunning();
+            DebugLogger.Log($"Steam running: {steamWasRunning}");
 
             try
             {
                 // Stop Steam if running
                 if (steamWasRunning)
                 {
+                    DebugLogger.Log("Attempting to stop Steam...");
                     var stopped = await StopSteamAsync(ct);
                     if (!stopped)
                     {
+                        DebugLogger.LogError("Failed to stop Steam");
                         return null;
                     }
+                    DebugLogger.Log("Steam stopped successfully");
                 }
 
                 // Extract cookie
@@ -268,7 +307,9 @@ namespace RebelShipBrowser.Services
                 // Restart Steam if it was running and restart is requested
                 if (restartSteam && steamWasRunning)
                 {
+                    DebugLogger.Log("Restarting Steam...");
                     RestartSteamMinimized();
+                    DebugLogger.Log("Steam restart initiated");
                 }
             }
         }
