@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 
 namespace RebelShipBrowser.Services
@@ -8,17 +9,22 @@ namespace RebelShipBrowser.Services
     /// </summary>
     public static class DebugLogger
     {
-        private static readonly string LogPath = Path.Combine(
+        private static readonly string LogPathValue = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "RebelShipBrowser",
             "debug.log"
         );
 
+        /// <summary>
+        /// Gets the path to the debug log file
+        /// </summary>
+        public static string LogPath => LogPathValue;
+
         static DebugLogger()
         {
             try
             {
-                var logDir = Path.GetDirectoryName(LogPath);
+                var logDir = Path.GetDirectoryName(LogPathValue);
                 if (logDir != null && !Directory.Exists(logDir))
                 {
                     Directory.CreateDirectory(logDir);
@@ -34,9 +40,9 @@ namespace RebelShipBrowser.Services
         {
             try
             {
-                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                 var logMessage = $"[{timestamp}] {message}\n";
-                File.AppendAllText(LogPath, logMessage);
+                File.AppendAllText(LogPathValue, logMessage);
             }
             catch
             {
@@ -57,9 +63,9 @@ namespace RebelShipBrowser.Services
         {
             try
             {
-                if (File.Exists(LogPath))
+                if (File.Exists(LogPathValue))
                 {
-                    File.Delete(LogPath);
+                    File.Delete(LogPathValue);
                 }
             }
             catch
@@ -67,7 +73,5 @@ namespace RebelShipBrowser.Services
                 // Ignore clear errors
             }
         }
-
-        public static string GetLogPath() => LogPath;
     }
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -71,6 +73,16 @@ namespace RebelShipBrowser.Services
         /// <returns>Decrypted and URL-decoded cookie value</returns>
         public static string? DecryptCookieValue(byte[] encryptedValue, byte[] aesKey)
         {
+            if (encryptedValue == null)
+            {
+                throw new ArgumentNullException(nameof(encryptedValue));
+            }
+
+            if (aesKey == null)
+            {
+                throw new ArgumentNullException(nameof(aesKey));
+            }
+
             try
             {
                 // Skip 'v10' or 'v11' prefix (3 bytes)
@@ -171,9 +183,14 @@ namespace RebelShipBrowser.Services
         /// </summary>
         public static void CleanupTempDatabase(string tempPath)
         {
+            if (tempPath == null)
+            {
+                throw new ArgumentNullException(nameof(tempPath));
+            }
+
             try
             {
-                if (tempPath.Contains("cookies_copy_") && File.Exists(tempPath))
+                if (tempPath.Contains("cookies_copy_", StringComparison.Ordinal) && File.Exists(tempPath))
                 {
                     File.Delete(tempPath);
                 }
