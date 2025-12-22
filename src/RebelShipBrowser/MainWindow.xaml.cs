@@ -250,6 +250,21 @@ namespace RebelShipBrowser
         {
             try
             {
+                // Check for nosteam.txt - skip Steam extraction and let user login manually
+                var noSteamPath = Path.Combine(AppContext.BaseDirectory, "nosteam.txt");
+                if (File.Exists(noSteamPath))
+                {
+                    UpdateStatus("No-Steam mode - manual login required", StatusType.Warning);
+                    LoadingText.Text = "Starting in No-Steam mode...";
+
+                    await InitializeWebViewAsync();
+                    WebView.Source = new Uri(TargetUrl);
+
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                    UpdateStatus("No-Steam mode - please login manually", StatusType.Warning);
+                    return;
+                }
+
                 UpdateStatus("Checking Steam installation...", StatusType.Warning);
 
                 if (!SteamService.IsSteamInstalled())

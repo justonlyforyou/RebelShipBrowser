@@ -11,8 +11,9 @@
 * **Quick Access:** Double-tap the icon to bring her about and restore the window in a flash.
 * **Re-Login:** If the seas get rough, we grab the key again. Easy peasy.
 * **Premium Map Themes:** All premium map styles unlocked - Dark, Light, Street, Satellite, City, and Sky. No doubloons required!
-* **Tanker Operations:** Build tankers even without the achievement. The seas be open to all cargo types!
+* **Tanker Operations:** Build tankers even without the achievement. Note: Ye can only BUILD tankers at the shipyard, not BUY them from the market!
 * **Metropolis Routes:** Access metropolis port routes without purchase. Chart yer course to the biggest harbors!
+* **No-Steam Mode:** Place a file called `nosteam.txt` next to the exe to skip Steam and login manually. All premium features still work!
 
 ### 📜 The Ship’s Articles (Requirements)
 
