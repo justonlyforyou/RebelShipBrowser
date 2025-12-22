@@ -21,6 +21,10 @@
 * The right rigging: **.NET 8.0 Runtime** (we packed it in the crate for ye).
 * **Steam** must be docked (installed) and ye must have sailed **shippingmanager.cc** at least once.
 
+### Dowload
+
+Download last version: [here](https://github.com/justonlyforyou/RebelShipBrowser/releases)
+
 ### 🧭 How to Navigate (How it Works)
 
 **Before we weigh anchor:**
