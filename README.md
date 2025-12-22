@@ -40,7 +40,7 @@ Fire up Steam and launch Shippingmanager *once*. Close it down after ye see the 
 
 * **No Blabberin':** We don't talk to foreign powers! We only signal to `shippingmanager.cc` and their related URL's - everything stays on your computer!
 * **No Sirens with Loot**: Sadly, we can't lure those mobile ads aboard this vessel. That means no watching ads for free bonus points here. Ye’ll have to earn yer gold the hard way, alas!
-* **No Black Magic:** No cheats, no extra cannons.
+* **No Black Magic:** No other cheats, no extra cannons.
 * **Just Smooth Sailing:** Play yer game in a browser without the barnacles and bugs ye faced using the official Steam tub provided by Trophy Games. Yarrr! 🦜
 
 ## 🔨 Raising the Flag (Installation)
