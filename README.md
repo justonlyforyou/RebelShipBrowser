@@ -7,9 +7,12 @@
 ### 💎 The Booty (Features)
 
 * **Auto-Login (Boarding Party):** We plunder the session cookie straight from Steam and get ye aboard automatically. No secret codes needed!
-* **System Tray (The Crow’s Nest):** Keeps a weather eye open in the background. Minimizes to the tray so it don’t clutter yer deck.
+* **System Tray (The Crow's Nest):** Keeps a weather eye open in the background. Minimizes to the tray so it don't clutter yer deck.
 * **Quick Access:** Double-tap the icon to bring her about and restore the window in a flash.
 * **Re-Login:** If the seas get rough, we grab the key again. Easy peasy.
+* **Premium Map Themes:** All premium map styles unlocked - Dark, Light, Street, Satellite, City, and Sky. No doubloons required!
+* **Tanker Operations:** Build tankers even without the achievement. The seas be open to all cargo types!
+* **Metropolis Routes:** Access metropolis port routes without purchase. Chart yer course to the biggest harbors!
 
 ### 📜 The Ship’s Articles (Requirements)
 

@@ -73,15 +73,8 @@ namespace RebelShipBrowser.Services
         /// <returns>Decrypted and URL-decoded cookie value</returns>
         public static string? DecryptCookieValue(byte[] encryptedValue, byte[] aesKey)
         {
-            if (encryptedValue == null)
-            {
-                throw new ArgumentNullException(nameof(encryptedValue));
-            }
-
-            if (aesKey == null)
-            {
-                throw new ArgumentNullException(nameof(aesKey));
-            }
+            ArgumentNullException.ThrowIfNull(encryptedValue);
+            ArgumentNullException.ThrowIfNull(aesKey);
 
             try
             {
@@ -183,10 +176,7 @@ namespace RebelShipBrowser.Services
         /// </summary>
         public static void CleanupTempDatabase(string tempPath)
         {
-            if (tempPath == null)
-            {
-                throw new ArgumentNullException(nameof(tempPath));
-            }
+            ArgumentNullException.ThrowIfNull(tempPath);
 
             try
             {
