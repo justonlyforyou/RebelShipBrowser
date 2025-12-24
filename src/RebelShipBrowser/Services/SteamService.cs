@@ -104,20 +104,21 @@ namespace RebelShipBrowser.Services
         }
 
         /// <summary>
-        /// Stops Steam gracefully, with fallback to force kill
+        /// Exits Steam gracefully using steam://exit protocol (NO force kill!)
+        /// This ensures Steam writes all data to disk properly.
         /// </summary>
-        /// <param name="ct">Cancellation token</param>
-        /// <returns>True if Steam was stopped or wasn't running</returns>
-        public static async Task<bool> StopSteamAsync(CancellationToken ct = default)
+        /// <returns>True if Steam exited</returns>
+        public static async Task<bool> ExitSteamGracefullyAsync()
         {
             if (!IsSteamRunning())
             {
+                DebugLogger.Log("[SteamService] Steam not running, nothing to exit");
                 return true;
             }
 
             try
             {
-                // Graceful shutdown via Steam protocol
+                DebugLogger.Log("[SteamService] Sending steam://exit...");
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "steam://exit",
@@ -125,44 +126,24 @@ namespace RebelShipBrowser.Services
                 };
                 Process.Start(startInfo);
 
-                // Wait up to 15 seconds for graceful exit
-                for (int i = 0; i < 15; i++)
+                // Wait up to 30 seconds for Steam to exit gracefully
+                for (int i = 0; i < 30; i++)
                 {
-                    if (ct.IsCancellationRequested)
-                    {
-                        return false;
-                    }
-
-                    await Task.Delay(1000, ct);
+                    await Task.Delay(1000);
 
                     if (!IsSteamRunning())
                     {
-                        // Wait a bit more for file handles to be released
-                        await Task.Delay(500, ct);
+                        DebugLogger.Log("[SteamService] Steam exited gracefully");
                         return true;
                     }
                 }
 
-                // Fallback: Force kill
-                foreach (var process in Process.GetProcessesByName("steam"))
-                {
-                    try
-                    {
-                        process.Kill();
-                        await process.WaitForExitAsync(ct);
-                    }
-                    catch
-                    {
-                        // Ignore kill errors
-                    }
-                }
-
-                // Final wait for file handles
-                await Task.Delay(500, ct);
-                return !IsSteamRunning();
+                DebugLogger.LogError("[SteamService] Steam did not exit after 30 seconds");
+                return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLogger.LogError($"[SteamService] Failed to exit Steam: {ex.Message}");
                 return false;
             }
         }
@@ -279,49 +260,6 @@ namespace RebelShipBrowser.Services
                 {
                     DebugLogger.Log("Cleaning up temporary database...");
                     await Task.Run(() => CookieDecryptor.CleanupTempDatabase(tempDbPath));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Full extraction flow: Stop Steam -> Extract Cookie -> Restart Steam
-        /// </summary>
-        /// <param name="restartSteam">Whether to restart Steam after extraction</param>
-        /// <param name="ct">Cancellation token</param>
-        /// <returns>Session cookie value or null</returns>
-        public static async Task<string?> ExtractWithSteamManagementAsync(bool restartSteam = true, CancellationToken ct = default)
-        {
-            DebugLogger.Log("=== ExtractWithSteamManagementAsync: Starting full extraction flow ===");
-
-            bool steamWasRunning = IsSteamRunning();
-            DebugLogger.Log($"Steam running: {steamWasRunning}");
-
-            try
-            {
-                // Stop Steam if running
-                if (steamWasRunning)
-                {
-                    DebugLogger.Log("Attempting to stop Steam...");
-                    var stopped = await StopSteamAsync(ct);
-                    if (!stopped)
-                    {
-                        DebugLogger.LogError("Failed to stop Steam");
-                        return null;
-                    }
-                    DebugLogger.Log("Steam stopped successfully");
-                }
-
-                // Extract cookie
-                return await ExtractSessionCookieAsync();
-            }
-            finally
-            {
-                // Restart Steam if it was running and restart is requested
-                if (restartSteam && steamWasRunning)
-                {
-                    DebugLogger.Log("Restarting Steam...");
-                    RestartSteamMinimized();
-                    DebugLogger.Log("Steam restart initiated");
                 }
             }
         }

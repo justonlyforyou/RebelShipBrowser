@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -152,27 +151,57 @@ namespace RebelShipBrowser.Services
         }
 
         /// <summary>
-        /// Copies the database to a temp location if it's locked
+        /// Copies the database to a temp location if it's locked.
+        /// Also copies WAL and SHM files to ensure we get the latest data.
         /// </summary>
         /// <param name="sourcePath">Original database path</param>
         /// <returns>Path to the copied database or original if copy fails</returns>
         public static string CopyDatabaseIfLocked(string sourcePath)
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), $"cookies_copy_{Guid.NewGuid()}.db");
+            var tempDir = Path.Combine(Path.GetTempPath(), $"cookies_copy_{Guid.NewGuid()}");
+            var tempPath = Path.Combine(tempDir, "Cookies");
 
             try
             {
+                Directory.CreateDirectory(tempDir);
+
+                // Copy main database file
                 File.Copy(sourcePath, tempPath, overwrite: true);
+
+                // Copy WAL file if it exists (contains recent uncommitted changes)
+                var walPath = sourcePath + "-wal";
+                if (File.Exists(walPath))
+                {
+                    File.Copy(walPath, tempPath + "-wal", overwrite: true);
+                }
+
+                // Copy SHM file if it exists (shared memory index for WAL)
+                var shmPath = sourcePath + "-shm";
+                if (File.Exists(shmPath))
+                {
+                    File.Copy(shmPath, tempPath + "-shm", overwrite: true);
+                }
+
                 return tempPath;
             }
             catch
             {
+                // Cleanup on failure
+                try
+                {
+                    if (Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, recursive: true);
+                    }
+                }
+                catch { }
+
                 return sourcePath;
             }
         }
 
         /// <summary>
-        /// Cleans up a temporary database copy
+        /// Cleans up a temporary database copy (including the temp directory)
         /// </summary>
         public static void CleanupTempDatabase(string tempPath)
         {
@@ -180,9 +209,18 @@ namespace RebelShipBrowser.Services
 
             try
             {
-                if (tempPath.Contains("cookies_copy_", StringComparison.Ordinal) && File.Exists(tempPath))
+                if (tempPath.Contains("cookies_copy_", StringComparison.Ordinal))
                 {
-                    File.Delete(tempPath);
+                    // Get the parent directory (the temp folder we created)
+                    var tempDir = Path.GetDirectoryName(tempPath);
+                    if (tempDir != null && Directory.Exists(tempDir) && tempDir.Contains("cookies_copy_", StringComparison.Ordinal))
+                    {
+                        Directory.Delete(tempDir, recursive: true);
+                    }
+                    else if (File.Exists(tempPath))
+                    {
+                        File.Delete(tempPath);
+                    }
                 }
             }
             catch

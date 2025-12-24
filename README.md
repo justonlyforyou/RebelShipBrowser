@@ -6,35 +6,67 @@
 
 ### 💎 The Booty (Features)
 
-* **Auto-Login (Boarding Party):** We plunder the session cookie straight from Steam and get ye aboard automatically. No secret codes needed!
+* **Two Login Methods:** Choose between Steam Login (automatic) or Browser Login (manual) - whatever suits yer sailing style!
 * **System Tray (The Crow's Nest):** Keeps a weather eye open in the background. Minimizes to the tray so it don't clutter yer deck.
 * **Quick Access:** Double-tap the icon to bring her about and restore the window in a flash.
-* **Re-Login:** If the seas get rough, we grab the key again. Easy peasy.
+* **Re-Login:** If the seas get rough, switch accounts or grab a fresh key. Easy peasy.
 * **Premium Map Themes:** All premium map styles unlocked - Dark, Light, Street, Satellite, City, and Sky. No doubloons required!
 * **Tanker Operations:** Build tankers even without the achievement. Note: Ye can only BUILD tankers at the shipyard, not BUY them from the market!
 * **Metropolis Routes:** Access metropolis port routes without purchase. Chart yer course to the biggest harbors!
-* **No-Steam Mode:** Place a file called `nosteam.txt` next to the exe to skip Steam and login manually. All premium features still work!
+* **Auto-Updates:** The app checks for updates on startup and lets ye update with a single click!
 
-### 📜 The Ship’s Articles (Requirements)
+### 📜 The Ship's Articles (Requirements)
 
 * A sturdy hull running **Windows 10/11**.
 * The right rigging: **.NET 8.0 Runtime** (we packed it in the crate for ye).
-* **Steam** must be docked (installed) and ye must have sailed **shippingmanager.cc** at least once.
+* **For Steam Login:** Steam must be docked (installed) and ye must have sailed **shippingmanager.cc** at least once.
+* **For Browser Login:** Just yer credentials - no Steam required!
 
 ### Dowload
 
 Download last version: [here](https://github.com/justonlyforyou/RebelShipBrowser/releases)
 
-### 🧭 How to Navigate (How it Works)
+### 🧭 How to Navigate (Login Methods)
 
-**Before we weigh anchor:**
-Fire up Steam and launch Shippingmanager *once*. Close it down after ye see the harbor (successful login). We need Steam to stash yer **Auth-Cookie** in the chest first!
+On startup, ye be presented with two ways to board the ship:
 
-1.  **On Startup:** The app raids Steam’s browser cache to find yer shiny session cookie.
-2.  **The Switch:** We briefly keelhaul Steam (stop it) and hoist it back up.
-3.  **Injection:** We slip that cookie into our browser like a thief in the night.
-4.  **Full Sail:** Ye be logged in automatically—no need to lift a finger!
-5.  **Abandon Ship (Exit):** Closing the app scrubs the deck clean. All cookies and cache are sent to Davy Jones' locker.
+#### 🚂 Steam Login (Recommended)
+
+Uses yer existing Steam session - no password entry needed!
+
+**First Time Setup:**
+1. Launch Shippingmanager via Steam and login to the game
+2. Play for about 5 minutes (Steam saves the session cookie with a delay)
+3. Start RebelShip Browser and select "Use Steam Login"
+
+**How it works:**
+- The app reads Steam's browser cache to find yer session cookie
+- Steam is briefly stopped to read the cookie database, then restarted
+- Ye be logged in automatically - no credentials needed!
+
+**If no valid session exists:**
+- The app shows instructions to start the game via Steam
+- Play for 5 minutes, then restart RebelShip Browser
+- This is needed because Steam only saves cookies after some gameplay
+
+#### 🌐 Browser Login
+
+Login manually like on any website - useful if Steam login doesn't work for ye.
+
+**How it works:**
+1. Select "Use Browser Login" on startup
+2. The game website opens in the built-in browser
+3. Login with yer credentials as usual
+4. Yer session is saved locally (encrypted) for next time
+
+**Session Storage:**
+- Browser login saves yer session in an encrypted file
+- Next startup, ye be logged in automatically
+- Use "Logout / Switch Account" from tray menu to clear and switch accounts
+
+#### 🚪 Abandon Ship (Exit)
+
+Closing the app scrubs the deck clean. Browser cache is sent to Davy Jones' locker, but yer saved session remains for next time!
 
 ### 🚫 The Pirate Code (What it DOESN'T do)
 

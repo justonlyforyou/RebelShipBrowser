@@ -1,0 +1,18 @@
+POST https://shippingmanager.cc/api/auth/login HTTP/1.1
+Host: shippingmanager.cc
+Connection: keep-alive
+Content-Length: 48
+Accept: application/json, text/plain, */*
+Content-Type: application/json
+Cookie: app_platform=eyJpdiI6Ik4wQmVvVVhiaUg2eWEvakpjd3R2a1E9PSIsInZhbHVlIjoiN1NDR0U1SjBENnkwRWNGMjlCVEpoNGVQOXJtZlQwWjJCSi9OeXo0V0tPa3N3aXdWamxLZWhBV1VyYktVZFBpayIsIm1hYyI6ImM1YzEzODI3ZTZkMGIyNjAyOWQ2MWVlZmRiNWI3ZjUyNWYzNTdkNDFmNzIzMTVlNjZlNGI0MjU2NWM2ODNhNmMiLCJ0YWciOiIifQ%3D%3D; app_version=eyJpdiI6IkdYcm11QkFzMmM2cEo2cjJReTFXYkE9PSIsInZhbHVlIjoiMWdqNE5BVGR0U3dtaGRXRWJXRlh1cXRsbER5S1lLZDl3Y2YxTThqR1pZT2dQUjFOYkk3SW85WEpYd0dGakgwbCIsIm1hYyI6ImE0ODZlNjlkNmJjMjljYmFiYzJhMDgwY2ViYmFlNjJiMzVmMzFkZDUzNzFkMmMxNDlkZGVmODNjZjViMGQ1NjgiLCJ0YWciOiIifQ%3D%3D; shipping_manager_session=eyJpdiI6Im9DeXVoSVRxeVk1MmJhbVZjNFFDZ3c9PSIsInZhbHVlIjoiQXpEcS9nV2RrT3loc1ZzUFhHcTJGNnNQTUF1RXc0THFoSnVKeDJlK0NVazlZc01VTzg0ckN1ZzJXZHNWeTFPSFpGRzc1V08vYlJLdWFqZW1BaHFGKytsY1k2YWxkVlFCZUJxblFOQnpjSHQvSkI3dTlPTUVKazdwclluVEpKQlgiLCJtYWMiOiJiZTZhYmYyMzIxOTFjMTljNmU2ZGI5M2E0NzliNzAxZWFlYTljZWJiOGE2YjdhM2M5NjY4ZGVjYWNhMTUxYzAyIiwidGFnIjoiIn0%3D
+Game-Version: 1.0.317
+Origin: https://shippingmanager.cc
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; Shipping Manager/default/1766451605) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.183 Safari/537.36
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://shippingmanager.cc/loading
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7
+
+{"token":"d9d47c8f-ac70-4a43-8be3-a631b80a08d1"}

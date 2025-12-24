@@ -1,4 +1,6 @@
 using System.Threading;
+using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace RebelShipBrowser
 {
@@ -9,6 +11,8 @@ namespace RebelShipBrowser
 
         protected override void OnStartup(System.Windows.StartupEventArgs e)
         {
+            // Force software rendering to allow screenshots (WPF+WebView2 hardware rendering blocks PrintScreen)
+            RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
             // Check if another instance is already running
             _mutex = new Mutex(true, MutexName, out bool createdNew);
 
