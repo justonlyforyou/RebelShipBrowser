@@ -150,6 +150,15 @@ namespace RebelShipBrowser
             }
         }
 
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.F5)
+            {
+                RefreshPage();
+                e.Handled = true;
+            }
+        }
+
         #region Tray Icon
 
         private void InitializeTrayIcon()
@@ -474,13 +483,17 @@ namespace RebelShipBrowser
                 return;
             }
 
-            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: WebViewUserDataFolder);
+            // Disable GPU acceleration to allow screenshots with external tools (Snipping Tool, ShareX, etc.)
+            var options = new CoreWebView2EnvironmentOptions("--disable-gpu");
+            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: WebViewUserDataFolder, options: options);
             await WebView.EnsureCoreWebView2Async(env);
 
             WebView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
             WebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             WebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
             WebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+            WebView.ZoomFactor = 0.8;
 
             WebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
 
