@@ -91,12 +91,40 @@ namespace RebelShipBrowser
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Clear debug log on startup
+            DebugLogger.ClearLog();
+            DebugLogger.Log("=== RebelShip Browser starting ===");
+
             // Cleanup any traces from previous sessions
             PerformStartupCleanup();
 
             InitializeTrayIcon();
-            await InitializeAndLoginAsync();
+
+            // Check for updates in background
+            _ = CheckForUpdatesAsync();
+
+            await InitializeWithLoginDialogAsync();
             StartHeaderTimer();
+        }
+
+        private async Task CheckForUpdatesAsync()
+        {
+            try
+            {
+                var updateAvailable = await UpdateService.CheckForUpdateAsync();
+                if (updateAvailable)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        UpdateButton.Content = $"Update to v{UpdateService.LatestVersion}";
+                        UpdateButton.Visibility = Visibility.Visible;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[UpdateCheck] Error: {ex.Message}");
+            }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -129,7 +157,7 @@ namespace RebelShipBrowser
             _trayMenu = new Forms.ContextMenuStrip();
             _trayMenu.Items.Add("Show Window", null, OnTrayShowClick);
             _trayMenu.Items.Add("Refresh Page", null, OnTrayRefreshClick);
-            _trayMenu.Items.Add("Re-Login from Steam", null, OnTrayReLoginClick);
+            _trayMenu.Items.Add("Logout / Switch Account", null, OnTrayReLoginClick);
             _trayMenu.Items.Add("-");
             _trayMenu.Items.Add($"Version {GetVersion()}", null, null);
             _trayMenu.Items.Add("-");
@@ -246,73 +274,196 @@ namespace RebelShipBrowser
 
         #region WebView and Login
 
-        private async Task InitializeAndLoginAsync()
+        private async Task InitializeWithLoginDialogAsync()
         {
             try
             {
-                // Check for nosteam.txt - skip Steam extraction and let user login manually
-                var noSteamPath = Path.Combine(AppContext.BaseDirectory, "nosteam.txt");
-                if (File.Exists(noSteamPath))
-                {
-                    UpdateStatus("No-Steam mode - manual login required", StatusType.Warning);
-                    LoadingText.Text = "Starting in No-Steam mode...";
-
-                    await InitializeWebViewAsync();
-                    WebView.Source = new Uri(TargetUrl);
-
-                    LoadingOverlay.Visibility = Visibility.Collapsed;
-                    UpdateStatus("No-Steam mode - please login manually", StatusType.Warning);
-                    return;
-                }
-
-                UpdateStatus("Checking Steam installation...", StatusType.Warning);
-
-                if (!SteamService.IsSteamInstalled())
-                {
-                    UpdateStatus("Steam not installed or never visited shippingmanager.cc", StatusType.Error);
-                    ShowError("Steam is not installed or has never visited shippingmanager.cc.\n\nPlease open Steam and login to shippingmanager.cc at least once.", "RebelShip Browser - Error");
-                    return;
-                }
-
-                UpdateStatus("Extracting session from Steam...", StatusType.Warning);
-                LoadingText.Text = "Extracting session from Steam...";
-
-                bool steamWasRunning = SteamService.IsSteamRunning();
-
-                if (steamWasRunning)
-                {
-                    LoadingText.Text = "Stopping Steam temporarily...";
-                    UpdateStatus("Stopping Steam temporarily...", StatusType.Warning);
-                }
-
-                _sessionCookie = await SteamService.ExtractWithSteamManagementAsync(restartSteam: true);
-
-                if (string.IsNullOrEmpty(_sessionCookie))
-                {
-                    UpdateStatus("Failed to extract session cookie", StatusType.Error);
-                    ShowError("Could not extract session cookie from Steam.\n\nPlease ensure you are logged into shippingmanager.cc in Steam's browser.");
-                    LoadingOverlay.Visibility = Visibility.Collapsed;
-                    return;
-                }
-
-                LoadingText.Text = "Initializing browser...";
-                UpdateStatus("Initializing browser...", StatusType.Warning);
-
-                await InitializeWebViewAsync();
-
-                LoadingText.Text = "Logging in...";
-                UpdateStatus("Injecting session cookie...", StatusType.Warning);
-
-                InjectCookieAndNavigate(_sessionCookie);
-
+                // Always show login method dialog first
                 LoadingOverlay.Visibility = Visibility.Collapsed;
-                UpdateStatus("Connected to ShippingManager", StatusType.Success);
+
+                var dialog = new LoginMethodDialog
+                {
+                    Owner = this
+                };
+
+                var result = dialog.ShowDialog();
+                if (result != true || dialog.SelectedMethod == LoginMethod.None)
+                {
+                    // User cancelled - exit app
+                    ExitApplication();
+                    return;
+                }
+
+                LoadingOverlay.Visibility = Visibility.Visible;
+
+                if (dialog.SelectedMethod == LoginMethod.Steam)
+                {
+                    await LoginWithSteamAsync();
+                }
+                else
+                {
+                    await LoginWithBrowserAsync();
+                }
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error: {ex.Message}", StatusType.Error);
                 LoadingOverlay.Visibility = Visibility.Collapsed;
                 ShowError($"An error occurred during initialization:\n\n{ex.Message}");
+            }
+        }
+
+        private async Task LoginWithSteamAsync()
+        {
+            UpdateStatus("Checking Steam installation...", StatusType.Warning);
+
+            if (!SteamService.IsSteamInstalled())
+            {
+                UpdateStatus("Steam not installed", StatusType.Error);
+                ShowError("Steam is not installed or has never visited shippingmanager.cc.\n\nPlease use Browser Login instead, or open Steam and login to shippingmanager.cc first.", "RebelShip Browser - Error");
+                LoadingOverlay.Visibility = Visibility.Collapsed;
+
+                // Show dialog again
+                await InitializeWithLoginDialogAsync();
+                return;
+            }
+
+            // Step 1: Stop Steam if running so we can read the cookie database
+            bool steamWasRunning = SteamService.IsSteamRunning();
+            if (steamWasRunning)
+            {
+                LoadingText.Text = "Stopping Steam to check session...";
+                UpdateStatus("Stopping Steam to check session...", StatusType.Warning);
+                await SteamService.ExitSteamGracefullyAsync();
+                await Task.Delay(1000);
+            }
+
+            // Step 2: Check if valid cookie already exists
+            LoadingText.Text = "Checking for existing session...";
+            UpdateStatus("Checking for existing session...", StatusType.Warning);
+
+            _sessionCookie = await SteamService.ExtractSessionCookieAsync();
+
+            if (!string.IsNullOrEmpty(_sessionCookie))
+            {
+                LoadingText.Text = "Validating session...";
+                UpdateStatus("Validating session...", StatusType.Warning);
+
+                var isValid = await CookieStorage.ValidateCookieAsync(_sessionCookie);
+                if (isValid)
+                {
+                    DebugLogger.Log("[LoginWithSteam] Existing cookie is valid, using it");
+
+                    // Restart Steam if it was running
+                    if (steamWasRunning)
+                    {
+                        SteamService.RestartSteamMinimized();
+                    }
+
+                    LoadingText.Text = "Initializing browser...";
+                    await InitializeWebViewAsync();
+                    InjectCookieAndNavigate(_sessionCookie);
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                    UpdateStatus("Connected to ShippingManager", StatusType.Success);
+                    return;
+                }
+
+                DebugLogger.Log("[LoginWithSteam] Existing cookie is invalid, need fresh login");
+                _sessionCookie = null;
+            }
+
+            // Step 3: No valid cookie - ask user to start game manually
+            ShowInfo("No valid Steam session found.\n\nPlease do the following:\n\n1. Start ShippingManager via Steam\n2. Login to the game\n3. Play for about 5 minutes\n4. Restart RebelShip Browser\n\nNote: Steam saves the session cookie with a delay.\nThis process ensures a valid session is available.", "RebelShip Browser - Steam Login Required");
+
+            // Exit the application - user needs to restart after playing
+            ExitApplication();
+        }
+
+        private async Task LoginWithBrowserAsync()
+        {
+            LoadingText.Text = "Checking for saved session...";
+            UpdateStatus("Checking for saved browser session...", StatusType.Warning);
+
+            // Check for saved cookie from previous browser login
+            var savedCookie = await CookieStorage.LoadAndValidateCookieAsync();
+            if (!string.IsNullOrEmpty(savedCookie))
+            {
+                LoadingText.Text = "Auto-login with saved session...";
+                UpdateStatus("Auto-login with saved session...", StatusType.Warning);
+
+                _sessionCookie = savedCookie;
+                await InitializeWebViewAsync();
+                InjectCookieAndNavigate(_sessionCookie);
+
+                LoadingOverlay.Visibility = Visibility.Collapsed;
+                UpdateStatus("Connected to ShippingManager (saved session)", StatusType.Success);
+                return;
+            }
+
+            // No saved cookie - open browser for manual login
+            LoadingText.Text = "Starting browser...";
+            UpdateStatus("Starting browser for manual login...", StatusType.Warning);
+
+            await InitializeWebViewAsync();
+
+            // Enable cookie monitoring to capture login
+            StartCookieMonitoring();
+
+            WebView.Source = new Uri(TargetUrl);
+
+            LoadingOverlay.Visibility = Visibility.Collapsed;
+            UpdateStatus("Please login to ShippingManager", StatusType.Warning);
+        }
+
+        private DispatcherTimer? _cookieMonitorTimer;
+
+        private void StartCookieMonitoring()
+        {
+            _cookieMonitorTimer?.Stop();
+            _cookieMonitorTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2)
+            };
+            _cookieMonitorTimer.Tick += async (s, e) => await CheckForLoginCookieAsync();
+            _cookieMonitorTimer.Start();
+        }
+
+        private void StopCookieMonitoring()
+        {
+            _cookieMonitorTimer?.Stop();
+            _cookieMonitorTimer = null;
+        }
+
+        private async Task CheckForLoginCookieAsync()
+        {
+            if (!_webViewInitialized || _sessionCookie != null)
+            {
+                return;
+            }
+
+            try
+            {
+                var cookies = await WebView.CoreWebView2.CookieManager.GetCookiesAsync(TargetUrl);
+                foreach (var cookie in cookies)
+                {
+                    if (cookie.Name == CookieName && !string.IsNullOrEmpty(cookie.Value))
+                    {
+                        // Validate the cookie
+                        var isValid = await CookieStorage.ValidateCookieAsync(cookie.Value);
+                        if (isValid)
+                        {
+                            _sessionCookie = cookie.Value;
+                            CookieStorage.SaveCookie(_sessionCookie);
+                            StopCookieMonitoring();
+                            UpdateStatus("Login successful! Session saved.", StatusType.Success);
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[CookieMonitor] Error: {ex.Message}");
             }
         }
 
@@ -615,6 +766,25 @@ namespace RebelShipBrowser
             await ReLoginAsync();
         }
 
+        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateButton.IsEnabled = false;
+            UpdateButton.Content = "Downloading...";
+
+            var success = await UpdateService.DownloadAndInstallUpdateAsync();
+            if (success)
+            {
+                // Exit the app - installer will handle the rest
+                ExitApplication();
+            }
+            else
+            {
+                UpdateButton.Content = "Update Failed";
+                UpdateButton.IsEnabled = true;
+                ShowError("Failed to download the update.\n\nPlease try again or download manually from GitHub.");
+            }
+        }
+
         private void RefreshPage()
         {
             if (_webViewInitialized)
@@ -627,14 +797,23 @@ namespace RebelShipBrowser
         private async Task ReLoginAsync()
         {
             LoadingOverlay.Visibility = Visibility.Visible;
-            LoadingText.Text = "Re-extracting session from Steam...";
+            LoadingText.Text = "Logging out...";
 
+            // Clear saved cookie
+            CookieStorage.DeleteCookie();
+            _sessionCookie = null;
+
+            // Clear browser cookies
             if (_webViewInitialized)
             {
                 WebView.CoreWebView2.CookieManager.DeleteAllCookies();
             }
 
-            await InitializeAndLoginAsync();
+            // Stop any ongoing cookie monitoring
+            StopCookieMonitoring();
+
+            // Show login dialog again
+            await InitializeWithLoginDialogAsync();
         }
 
         #endregion
@@ -670,6 +849,16 @@ namespace RebelShipBrowser
                 title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error
+            );
+        }
+
+        private static void ShowInfo(string message, string title = "RebelShip Browser")
+        {
+            System.Windows.MessageBox.Show(
+                message,
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
             );
         }
 
@@ -776,6 +965,7 @@ namespace RebelShipBrowser
                 _trayIcon?.Dispose();
                 _trayMenu?.Dispose();
                 _headerHideTimer?.Stop();
+                _cookieMonitorTimer?.Stop();
             }
 
             _disposed = true;

@@ -59,6 +59,31 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0">
+                    <!-- Update Button (hidden by default) -->
+                    <Button x:Name="UpdateButton" Content="Update Available"
+                           Click="UpdateButton_Click"
+                           Background="{StaticResource SuccessColor}"
+                           Foreground="White" BorderThickness="0"
+                           Padding="12,6" FontSize="11"
+                           Cursor="Hand" Margin="0,0,8,0"
+                           Visibility="Collapsed">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                   CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
                     <Button x:Name="RefreshButton" Content="Refresh"
                            Click="RefreshButton_Click"
                            Background="{StaticResource PrimaryColor}"
@@ -82,7 +107,7 @@
                         </Button.Style>
                     </Button>
 
-                    <Button x:Name="RestartLoginButton" Content="Re-Login"
+                    <Button x:Name="RestartLoginButton" Content="Logout"
                            Click="RestartLoginButton_Click"
                            Background="{StaticResource WarningColor}"
                            Foreground="White" BorderThickness="0"
