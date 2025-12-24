@@ -97,7 +97,7 @@ namespace RebelShipBrowser.Installer.Pages
             }
         }
 
-        private void ExtractPayload()
+        private static void ExtractPayload()
         {
             // Create install directory
             Directory.CreateDirectory(InstallPath);
@@ -193,7 +193,7 @@ namespace RebelShipBrowser.Installer.Pages
             }
         }
 
-        private void CreateShortcuts()
+        private static void CreateShortcuts()
         {
             var exePath = Path.Combine(InstallPath, "RebelShipBrowser.exe");
 
