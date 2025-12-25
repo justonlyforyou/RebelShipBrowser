@@ -1,0 +1,234 @@
+<Window x:Class="RebelShipBrowser.ScriptManagerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Script Manager"
+        Height="500" Width="600"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundColor}"
+        ResizeMode="CanResize"
+        MinHeight="400" MinWidth="500">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Userscripts" FontSize="18" FontWeight="Bold"
+                      Foreground="{StaticResource TextColor}"/>
+            <TextBlock Text="Manage your custom scripts for websites"
+                      FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- Script List -->
+        <Border Grid.Row="1" Background="{StaticResource CardBackground}"
+                BorderBrush="{StaticResource BorderColor}" BorderThickness="1"
+                CornerRadius="4">
+            <Grid>
+                <ListBox x:Name="ScriptList" Background="Transparent" BorderThickness="0"
+                        SelectionChanged="ScriptList_SelectionChanged"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="8,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Enable/Disable Toggle -->
+                                <CheckBox Grid.Column="0" IsChecked="{Binding Enabled}"
+                                         VerticalAlignment="Center" Margin="0,0,10,0"
+                                         Click="EnableToggle_Click"/>
+
+                                <!-- Script Info -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                              Foreground="{StaticResource TextColor}"/>
+                                    <TextBlock Text="{Binding Description}" FontSize="11"
+                                              Foreground="{StaticResource TextSecondary}"
+                                              TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <!-- Version -->
+                                <TextBlock Grid.Column="2" Text="{Binding Version}"
+                                          FontSize="11" Foreground="{StaticResource TextSecondary}"
+                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Border" Background="{TemplateBinding Background}"
+                                               BorderThickness="0,0,0,1"
+                                               BorderBrush="{StaticResource BorderColor}">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Border" Property="Background"
+                                                       Value="{StaticResource PrimaryColor}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Border" Property="Background"
+                                                       Value="#2a3a5a"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+
+                <!-- Empty State -->
+                <TextBlock x:Name="EmptyMessage" Text="No scripts yet. Click 'New Script' to create one."
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Foreground="{StaticResource TextSecondary}"
+                          Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Buttons -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Button x:Name="NewButton" Content="New Script" Click="NewButton_Click"
+                       Background="{StaticResource SuccessColor}" Foreground="White"
+                       BorderThickness="0" Padding="15,8" Cursor="Hand" Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="EditButton" Content="Edit" Click="EditButton_Click"
+                       Background="{StaticResource PrimaryColor}" Foreground="White"
+                       BorderThickness="0" Padding="15,8" Cursor="Hand" Margin="0,0,8,0"
+                       IsEnabled="False">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="DeleteButton" Content="Delete" Click="DeleteButton_Click"
+                       Background="{StaticResource ErrorColor}" Foreground="White"
+                       BorderThickness="0" Padding="15,8" Cursor="Hand"
+                       IsEnabled="False">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+
+            <!-- Right Buttons -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="FolderButton" Content="Open Folder" Click="FolderButton_Click"
+                       Background="{StaticResource CardBackground}" Foreground="{StaticResource TextColor}"
+                       BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                       Padding="15,8" Cursor="Hand" Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="CloseButton" Content="Close" Click="CloseButton_Click"
+                       Background="{StaticResource CardBackground}" Foreground="{StaticResource TextColor}"
+                       BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                       Padding="15,8" Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
