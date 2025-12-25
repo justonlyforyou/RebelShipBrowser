@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShippingManager - Forecast Calendar
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      3.1
 // @description  Embedded forecast calendar with page-flip navigation
 // @author       https://github.com/justonlyforyou/
 // @match        https://shippingmanager.cc/*
@@ -123,9 +123,21 @@
         }
         .forecast-page {
             background: #1e2235;
-            padding: 8px;
+            border: none;
+            box-sizing: border-box;
+            position: relative;
         }
-        .forecast-page-content { height: 100%; }
+        .forecast-page:nth-child(odd) {
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .forecast-page-content {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
         .forecast-page-content h2 {
             text-align: center;
             font-size: 13px;
@@ -164,29 +176,42 @@
         .co2-red { color: #ef4444 !important; font-weight: 600; }
         /* Override game modal for forecast - full height */
         #modal-container.forecast-mode #modal-content {
-            height: calc(100% - 31px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            height: 100% !important;
             padding: 0 !important;
             overflow: hidden !important;
         }
         #modal-container.forecast-mode #central-container {
-            height: 100% !important;
-            max-height: 100% !important;
+            flex: 1 !important;
+            display: flex !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: hidden !important;
+            background: #1e2235 !important;
         }
         #modal-container.forecast-mode #forecast-book {
-            width: 100% !important;
-            height: 100% !important;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-sizing: border-box;
+            background: #1e2235 !important;
         }
-        #modal-container.forecast-mode #bottom-controls {
-            display: none !important;
-        }
-        #modal-container.forecast-mode #bottom-nav {
-            display: none !important;
-        }
+        #modal-container.forecast-mode #bottom-controls,
+        #modal-container.forecast-mode #bottom-nav,
         #modal-container.forecast-mode #top-nav {
             display: none !important;
+        }
+        #modal-container.forecast-mode .stf__block {
+            margin: 0 auto !important;
+        }
+        #modal-container.forecast-mode .stf__parent {
+            background: #1e2235 !important;
+        }
+        #modal-container.forecast-mode .stf__wrapper {
+            background: #1e2235 !important;
         }
     `;
 
@@ -424,8 +449,6 @@
     let currentMonth = null;
     let currentYear = null;
     let browserTimezone = null;
-    let modalHeight = 500; // Will be set dynamically
-    let modalWidth = 450;  // Will be set dynamically
 
     function getFuelClass(price) {
         if (price > 750) return 'fuel-red';
@@ -483,20 +506,56 @@
         return html;
     }
 
+    function destroyPageFlip() {
+        if (pageFlip) {
+            try {
+                pageFlip.destroy();
+            } catch (e) {
+                console.log('[Forecast] PageFlip destroy error:', e);
+            }
+            pageFlip = null;
+        }
+    }
+
     function renderBook() {
         const bookElement = document.getElementById('forecast-book');
-        bookElement.innerHTML = '';
+        if (!bookElement) return;
 
-        // Set book element size explicitly
-        bookElement.style.width = modalWidth + 'px';
-        bookElement.style.height = modalHeight + 'px';
+        destroyPageFlip();
+        bookElement.innerHTML = '';
 
         const now = new Date();
         currentMonth = now.getMonth() + 1;
         currentYear = now.getFullYear();
 
-        const pageWidth = Math.floor(modalWidth / 2);
-        const pageHeight = modalHeight;
+        // Calculate page size based on available container space
+        let containerWidth = bookElement.clientWidth - 5;
+        let containerHeight = bookElement.clientHeight;
+
+        // Fallback: if book element has no size, get from modal-container
+        if (containerWidth < 100 || containerHeight < 100) {
+            const modalContainer = document.getElementById('modal-container');
+            if (modalContainer) {
+                containerWidth = modalContainer.clientWidth - 5;
+                containerHeight = modalContainer.clientHeight - 31; // minus header
+
+                // Set explicit size on book element
+                bookElement.style.width = containerWidth + 'px';
+                bookElement.style.height = containerHeight + 'px';
+            }
+        }
+
+        console.log('[Forecast] Container size:', containerWidth, 'x', containerHeight);
+
+        // Still no valid size? Abort
+        if (containerWidth < 100 || containerHeight < 100) {
+            console.error('[Forecast] Invalid container size');
+            return;
+        }
+
+        // Each page is half the width (for 2-page spread)
+        const pageWidth = Math.floor(containerWidth / 2);
+        const pageHeight = containerHeight - 30;
 
         daysData.forEach((dayData) => {
             const formattedDate = `${String(dayData.day).padStart(2, '0')}/${String(currentMonth).padStart(2, '0')}/${currentYear}`;
@@ -504,9 +563,7 @@
             const appendPage = (suffix, content) => {
                 const page = document.createElement('div');
                 page.className = 'forecast-page';
-                page.style.width = pageWidth + 'px';
-                page.style.height = pageHeight + 'px';
-                page.innerHTML = `<div class="forecast-page-content" style="height:${pageHeight}px;overflow:auto;"><h2>${formattedDate} ${suffix} ${browserTimezone}</h2>${content}</div>`;
+                page.innerHTML = `<div class="forecast-page-content"><h2>${formattedDate} ${suffix} ${browserTimezone}</h2>${content}</div>`;
                 bookElement.appendChild(page);
             };
 
@@ -514,8 +571,6 @@
                 appendPage('', '<p style="text-align:center;color:#888;">No data</p>');
                 const empty = document.createElement('div');
                 empty.className = 'forecast-page';
-                empty.style.width = pageWidth + 'px';
-                empty.style.height = pageHeight + 'px';
                 bookElement.appendChild(empty);
                 return;
             }
@@ -543,9 +598,16 @@
             flippingTime: 600,
             showCover: false,
             maxShadowOpacity: 0.5,
+            mobileScrollSupport: true,
             startPage: startPage,
+            clickEventForward: false,
+            swipeDistance: 30,
             useMouseEvents: true,
-            drawShadow: true
+            drawShadow: true,
+            maxWidth: pageWidth,
+            minWidth: pageWidth,
+            maxHeight: pageHeight,
+            minHeight: pageHeight
         });
 
         pageFlip.loadFromHTML(document.querySelectorAll('.forecast-page'));
@@ -598,6 +660,9 @@
             return;
         }
 
+        // Clean up any previous instance
+        destroyPageFlip();
+
         // Open maintenance modal and hijack it
         modalStore.open('maintenance');
 
@@ -616,22 +681,20 @@
             if (modalContainer) {
                 // Add forecast-mode class for CSS overrides
                 modalContainer.classList.add('forecast-mode');
-
-                // Calculate available size
-                const headerHeight = 31;
-                modalHeight = modalContainer.offsetHeight - headerHeight;
-                modalWidth = modalContainer.offsetWidth;
             }
 
             if (centralContainer) {
                 // Create forecast-book container
                 centralContainer.innerHTML = '<div id="forecast-book"></div>';
 
-                if (daysData.length === 0) {
-                    loadForecastData();
-                } else {
-                    renderBook();
-                }
+                // Wait for CSS to apply, then render
+                setTimeout(() => {
+                    if (daysData.length === 0) {
+                        loadForecastData();
+                    } else {
+                        renderBook();
+                    }
+                }, 200);
             }
         }, 150);
     }

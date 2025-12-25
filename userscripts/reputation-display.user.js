@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Shipping Manager - Reputation Display
 // @description Shows reputation next to company name, click to open Finance modal
-// @version     3.5
+// @version     3.6
 // @author      joseywales - Pimped by https://github.com/justonlyforyou/
 // @match       https://shippingmanager.cc/*
 // @grant       none
@@ -16,8 +16,8 @@
     let reputationElement = null;
 
     function getReputationColor(rep) {
-        if (rep >= 90) return "#8fffa1";
-        if (rep >= 80) return "#fff176";
+        if (rep >= 80) return "#8fffa1";
+        if (rep >= 50) return "#fff176";
         return "#ff8a80";
     }
 
