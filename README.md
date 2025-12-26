@@ -118,9 +118,6 @@ cd RebelShipBrowser
 
 # Hammer the ship together using the script (reads version from VERSION file)
 .\build\build.ps1
-
-# Or build it by hand like a true craftsman (version will be 0.0.0)
-dotnet build RebelShipBrowser.sln -c Release
 ```
 
 ## Questions or Problems?
