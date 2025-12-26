@@ -55,6 +55,15 @@ if ($LASTEXITCODE -ne 0) {
 
 # Create payload zip
 Write-Host "`n[4/5] Creating installer payload..." -ForegroundColor Yellow
+
+# Copy userscripts to app folder
+$UserScriptsSource = Join-Path $RootDir "userscripts"
+$UserScriptsDest = Join-Path $AppDir "userscripts"
+if (Test-Path $UserScriptsSource) {
+    Copy-Item -Path $UserScriptsSource -Destination $UserScriptsDest -Recurse -Force
+    Write-Host "  Copied userscripts folder" -ForegroundColor Gray
+}
+
 $PayloadDir = Join-Path $RootDir "src\RebelShipBrowser.Installer\Resources"
 if (-not (Test-Path $PayloadDir)) {
     New-Item -ItemType Directory -Path $PayloadDir -Force | Out-Null

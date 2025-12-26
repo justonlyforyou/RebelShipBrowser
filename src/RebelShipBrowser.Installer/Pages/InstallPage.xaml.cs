@@ -9,21 +9,6 @@ namespace RebelShipBrowser.Installer.Pages
 {
     public partial class InstallPage : Page
     {
-        private static readonly string InstallPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "RebelShipBrowser"
-        );
-
-        private static readonly string StartMenuPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-            "RebelShip Browser.lnk"
-        );
-
-        private static readonly string DesktopPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            "RebelShip Browser.lnk"
-        );
-
         public InstallPage()
         {
             InitializeComponent();
@@ -41,11 +26,15 @@ namespace RebelShipBrowser.Installer.Pages
                 await UpdateProgressAsync("Extracting files...", 10);
                 ExtractPayload();
 
-                // Step 3: Create shortcuts
-                await UpdateProgressAsync("Creating shortcuts...", 50);
+                // Step 3: Install default userscripts
+                await UpdateProgressAsync("Installing default scripts...", 40);
+                InstallDefaultUserScripts();
+
+                // Step 4: Create shortcuts
+                await UpdateProgressAsync("Creating shortcuts...", 60);
                 CreateShortcuts();
 
-                // Step 4: Register uninstaller
+                // Step 5: Register uninstaller
                 await UpdateProgressAsync("Registering application...", 80);
                 RegisterUninstaller();
 
@@ -99,8 +88,10 @@ namespace RebelShipBrowser.Installer.Pages
 
         private static void ExtractPayload()
         {
+            var installPath = InstallerSettings.InstallPath;
+
             // Create install directory
-            Directory.CreateDirectory(InstallPath);
+            Directory.CreateDirectory(installPath);
 
             // Try to extract embedded payload
             var assembly = Assembly.GetExecutingAssembly();
@@ -122,10 +113,10 @@ namespace RebelShipBrowser.Installer.Pages
                             continue;
                         }
 
-                        var destPath = Path.GetFullPath(Path.Combine(InstallPath, sanitizedName));
+                        var destPath = Path.GetFullPath(Path.Combine(installPath, sanitizedName));
 
                         // Ensure destination is within install directory
-                        if (!destPath.StartsWith(InstallPath, StringComparison.OrdinalIgnoreCase))
+                        if (!destPath.StartsWith(installPath, StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }
@@ -150,7 +141,65 @@ namespace RebelShipBrowser.Installer.Pages
                 var sourceDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "RebelShipBrowser", "bin", "Release", "net8.0-windows10.0.19041.0");
                 if (Directory.Exists(sourceDir))
                 {
-                    CopyDirectory(sourceDir, InstallPath);
+                    CopyDirectory(sourceDir, installPath);
+                }
+            }
+        }
+
+        private static void InstallDefaultUserScripts()
+        {
+            // Create directories
+            Directory.CreateDirectory(InstallerSettings.BundledScriptsPath);
+            Directory.CreateDirectory(InstallerSettings.CustomScriptsPath);
+
+            // Migrate existing scripts from flat structure to new structure
+            MigrateExistingScripts();
+        }
+
+        // Known bundled script filenames (scripts we ship)
+        private static readonly HashSet<string> KnownBundledScripts = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "auto-depart.user.js",
+            "bunker-price-display.user.js",
+            "buy-vip-vessel.user.js",
+            "depart-all-loop.user.js",
+            "export-messages.user.js",
+            "export-vessels-csv.user.js",
+            "forecast-calendar.user.js",
+            "map-unlock.user.js",
+            "reputation-display.user.js",
+            "save-vessel-history.user.js",
+            "vessel-cart.user.js"
+        };
+
+        private static void MigrateExistingScripts()
+        {
+            var userScriptsPath = InstallerSettings.UserScriptsPath;
+
+            // Check for scripts in the root userscripts folder (old structure)
+            var rootScripts = Directory.GetFiles(userScriptsPath, "*.js", SearchOption.TopDirectoryOnly);
+
+            foreach (var scriptPath in rootScripts)
+            {
+                var fileName = Path.GetFileName(scriptPath);
+                var destFolder = KnownBundledScripts.Contains(fileName)
+                    ? InstallerSettings.BundledScriptsPath
+                    : InstallerSettings.CustomScriptsPath;
+
+                var destPath = Path.Combine(destFolder, fileName);
+
+                try
+                {
+                    // Move to appropriate folder
+                    if (File.Exists(destPath))
+                    {
+                        File.Delete(destPath);
+                    }
+                    File.Move(scriptPath, destPath);
+                }
+                catch
+                {
+                    // Ignore migration errors for individual files
                 }
             }
         }
@@ -195,13 +244,13 @@ namespace RebelShipBrowser.Installer.Pages
 
         private static void CreateShortcuts()
         {
-            var exePath = Path.Combine(InstallPath, "RebelShipBrowser.exe");
+            var exePath = InstallerSettings.ExePath;
 
             // Start Menu shortcut using PowerShell
-            CreateShortcutViaPowerShell(StartMenuPath, exePath, "RebelShip Browser");
+            CreateShortcutViaPowerShell(InstallerSettings.StartMenuPath, exePath, "RebelShip Browser");
 
             // Desktop shortcut using PowerShell
-            CreateShortcutViaPowerShell(DesktopPath, exePath, "RebelShip Browser");
+            CreateShortcutViaPowerShell(InstallerSettings.DesktopPath, exePath, "RebelShip Browser");
         }
 
         private static void CreateShortcutViaPowerShell(string shortcutPath, string targetPath, string description)
@@ -216,7 +265,7 @@ $Shortcut.WorkingDirectory = '{Path.GetDirectoryName(targetPath)?.Replace("'", "
 $Shortcut.Description = '{description}'
 $Shortcut.Save()
 ";
-                var startInfo = new System.Diagnostics.ProcessStartInfo
+                var startInfo = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
                     Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"", StringComparison.Ordinal)}\"",
@@ -226,7 +275,7 @@ $Shortcut.Save()
                     RedirectStandardError = true
                 };
 
-                using var process = System.Diagnostics.Process.Start(startInfo);
+                using var process = Process.Start(startInfo);
                 process?.WaitForExit(5000);
             }
             catch
@@ -252,13 +301,14 @@ $Shortcut.Save()
 
                 if (uninstallKey != null)
                 {
-                    var exePath = Path.Combine(InstallPath, "RebelShipBrowser.exe");
+                    var exePath = InstallerSettings.ExePath;
+                    var installPath = InstallerSettings.InstallPath;
                     var setupPath = Environment.ProcessPath ?? "";
 
                     uninstallKey.SetValue("DisplayName", "RebelShip Browser");
                     uninstallKey.SetValue("DisplayVersion", GetVersion());
                     uninstallKey.SetValue("Publisher", "justonlyforyou");
-                    uninstallKey.SetValue("InstallLocation", InstallPath);
+                    uninstallKey.SetValue("InstallLocation", installPath);
                     uninstallKey.SetValue("DisplayIcon", exePath);
                     uninstallKey.SetValue("UninstallString", $"\"{setupPath}\" /uninstall");
                     uninstallKey.SetValue("NoModify", 1);

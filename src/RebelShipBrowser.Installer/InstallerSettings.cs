@@ -17,6 +17,8 @@ namespace RebelShipBrowser.Installer
         }
 
         public static string UserScriptsPath => Path.Combine(InstallPath, "userscripts");
+        public static string BundledScriptsPath => Path.Combine(UserScriptsPath, "bundled");
+        public static string CustomScriptsPath => Path.Combine(UserScriptsPath, "custom");
 
         public static string StartMenuPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.Programs),

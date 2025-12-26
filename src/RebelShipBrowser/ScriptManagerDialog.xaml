@@ -1,12 +1,18 @@
 <Window x:Class="RebelShipBrowser.ScriptManagerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:RebelShipBrowser"
         Title="Script Manager"
         Height="500" Width="600"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BackgroundColor}"
         ResizeMode="CanResize"
         MinHeight="400" MinWidth="500">
+
+    <Window.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
+    </Window.Resources>
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -47,8 +53,20 @@
 
                                 <!-- Script Info -->
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                              Foreground="{StaticResource TextColor}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                  Foreground="{StaticResource TextColor}"/>
+                                        <Border Background="{StaticResource PrimaryColor}" CornerRadius="3"
+                                               Padding="6,2" Margin="8,0,0,0"
+                                               Visibility="{Binding IsBundled, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="Bundled" FontSize="10" Foreground="White"/>
+                                        </Border>
+                                        <Border Background="{StaticResource SuccessColor}" CornerRadius="3"
+                                               Padding="6,2" Margin="8,0,0,0"
+                                               Visibility="{Binding IsBundled, Converter={StaticResource InverseBoolToVisibility}}">
+                                            <TextBlock Text="Custom" FontSize="10" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
                                     <TextBlock Text="{Binding Description}" FontSize="11"
                                               Foreground="{StaticResource TextSecondary}"
                                               TextTrimming="CharacterEllipsis"/>

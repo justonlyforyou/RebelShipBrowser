@@ -14,6 +14,27 @@
 * **Tanker Operations:** Build tankers even without the achievement. Note: Ye can only BUILD tankers at the shipyard, not BUY them from the market!
 * **Metropolis Routes:** Access metropolis port routes without purchase. Chart yer course to the biggest harbors!
 * **Auto-Updates:** The app checks for updates on startup and lets ye update with a single click!
+* **Script Manager:** Manage userscripts to enhance yer gameplay. Enable/disable bundled scripts or create yer own!
+
+### 📜 Bundled Userscripts
+
+The browser comes with these ready-to-use scripts (disabled by default - enable in Script Manager):
+
+| Script | Description |
+|--------|-------------|
+| **Auto Depart** | Automatically departs vessels when they arrive at port |
+| **Bunker Price Display** | Shows fuel and CO2 prices directly in the UI |
+| **Buy VIP Vessel** | Enables purchasing VIP vessels from the market |
+| **Depart All Loop** | Repeatedly clicks "Depart All" until all vessels have departed |
+| **Export Messages** | Export all messenger conversations as CSV or JSON |
+| **Export Vessels CSV** | Export your fleet data to CSV format |
+| **Forecast Calendar** | Shows cargo demand forecasts in a calendar view |
+| **Map Unlock** | Unlocks all premium map themes (Dark, Light, Satellite, etc.) |
+| **Reputation Display** | Shows your company reputation next to the company name |
+| **Save Vessel History** | Tracks and saves vessel purchase/sale history |
+| **Vessel Shopping Cart** | Add vessels to a cart and bulk purchase them |
+
+**Custom Scripts:** Create your own scripts in the Script Manager - they're stored separately from bundled scripts!
 
 ### 📜 The Ship's Articles (Requirements)
 

@@ -15,6 +15,7 @@ namespace RebelShipBrowser.Services
 
         public string FilePath { get; set; } = string.Empty;
         public string FileName => Path.GetFileName(FilePath);
+        public bool IsBundled { get; set; }
         public string Name { get; set; } = "Unnamed Script";
         public string? Description { get; set; }
         public string? Version { get; set; }

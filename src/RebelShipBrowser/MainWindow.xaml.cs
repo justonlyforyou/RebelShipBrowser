@@ -21,6 +21,11 @@ namespace RebelShipBrowser
         private const string CookieName = "shipping_manager_session";
 
         private static readonly string WebViewUserDataFolder = Path.Combine(Path.GetTempPath(), "RebelShipBrowser_WebView2");
+        private static readonly string SettingsFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "RebelShipBrowser"
+        );
+        private static readonly string GpuSettingsFile = Path.Combine(SettingsFolder, "gpu_enabled.txt");
 
         private Forms.NotifyIcon? _trayIcon;
         private Forms.ContextMenuStrip? _trayMenu;
@@ -28,12 +33,39 @@ namespace RebelShipBrowser
         private bool _isClosingCompletely;
         private bool _webViewInitialized;
         private DispatcherTimer? _headerHideTimer;
+        private readonly UserScriptService _userScriptService = new();
+
+        private static bool IsGpuEnabled
+        {
+            get
+            {
+                if (!File.Exists(GpuSettingsFile))
+                {
+                    return false; // Default: GPU disabled for screenshot compatibility
+                }
+                return File.ReadAllText(GpuSettingsFile).Trim() == "1";
+            }
+            set
+            {
+                if (!Directory.Exists(SettingsFolder))
+                {
+                    Directory.CreateDirectory(SettingsFolder);
+                }
+                File.WriteAllText(GpuSettingsFile, value ? "1" : "0");
+            }
+        }
 
         public MainWindow()
         {
             InitializeComponent();
             VersionText.Text = $"v{GetVersion()}";
             InitializeHeaderTimer();
+            UpdateGpuButtonText();
+        }
+
+        private void UpdateGpuButtonText()
+        {
+            GpuToggleButton.Content = IsGpuEnabled ? "GPU: On" : "GPU: Off";
         }
 
         private void InitializeHeaderTimer()
@@ -483,9 +515,17 @@ namespace RebelShipBrowser
                 return;
             }
 
-            // Disable GPU acceleration to allow screenshots with external tools (Snipping Tool, ShareX, etc.)
-            var options = new CoreWebView2EnvironmentOptions("--disable-gpu");
-            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: WebViewUserDataFolder, options: options);
+            // GPU disabled by default for screenshot compatibility, can be toggled via button
+            CoreWebView2Environment env;
+            if (IsGpuEnabled)
+            {
+                env = await CoreWebView2Environment.CreateAsync(userDataFolder: WebViewUserDataFolder);
+            }
+            else
+            {
+                var options = new CoreWebView2EnvironmentOptions("--disable-gpu");
+                env = await CoreWebView2Environment.CreateAsync(userDataFolder: WebViewUserDataFolder, options: options);
+            }
             await WebView.EnsureCoreWebView2Async(env);
 
             WebView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -497,7 +537,47 @@ namespace RebelShipBrowser
 
             WebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
 
+            // Register document-start userscripts
+            await RegisterDocumentStartScriptsAsync();
+
             _webViewInitialized = true;
+        }
+
+        private async Task RegisterDocumentStartScriptsAsync()
+        {
+            _userScriptService.LoadAllScripts();
+
+            foreach (var script in _userScriptService.Scripts)
+            {
+                if (!script.Enabled || script.RunAt != RunAt.DocumentStart)
+                {
+                    continue;
+                }
+
+                var code = script.GetCodeWithoutMetadata();
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    // Build URL pattern check - scripts run on all pages but check match patterns
+                    var matchPatterns = script.Match.Select(p => $"'{p}'").ToList();
+                    var matchCheck = matchPatterns.Count > 0
+                        ? $"var patterns = [{string.Join(",", matchPatterns)}]; var url = window.location.href; var matches = patterns.some(function(p) {{ var regex = new RegExp(p.replace(/\\*/g, '.*')); return regex.test(url); }}); if (!matches) return;"
+                        : "";
+
+                    var wrappedCode = $"(function() {{ {matchCheck} {code} }})();";
+
+                    await WebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(wrappedCode);
+                    DebugLogger.Log($"[UserScript] Registered '{script.Name}' for document-start");
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.Log($"[UserScript] Error registering '{script.Name}': {ex.Message}");
+                }
+            }
         }
 
         private void InjectCookieAndNavigate(string sessionCookie)
@@ -518,11 +598,11 @@ namespace RebelShipBrowser
             {
                 UpdateStatus($"Loaded: {WebView.Source}", StatusType.Success);
 
-                // Inject premium map unlocks on map pages
-                if (WebView.Source?.ToString().Contains("shippingmanager.cc", StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    await InjectPremiumMapUnlockAsync();
-                }
+                // Auto-accept cookie consent
+                await AutoAcceptCookieConsentAsync();
+
+                // Inject userscripts
+                await InjectUserScriptsAsync();
             }
             else
             {
@@ -530,238 +610,91 @@ namespace RebelShipBrowser
             }
         }
 
-        private async Task InjectPremiumMapUnlockAsync()
+        private async Task AutoAcceptCookieConsentAsync()
         {
-            // Direct tile replacement approach from cheatsheet - hijack menu clicks
-            const string mapUnlockScript = @"
-(function() {
-    if (window._rebelShipMapUnlockActive) return;
-    window._rebelShipMapUnlockActive = true;
-
-    const TOKEN = 'sk.eyJ1Ijoic2hqb3J0aCIsImEiOiJjbGV0cHdodGwxaWZnM3NydnlvNHc4cG02In0.D5n6nIFb0JqhGA9lM_jRkw';
-
-    const THEMES = {
-        'Dark': { base: 'https://api.mapbox.com/styles/v1/mapbox/dark-v10/tiles', suffix: '' },
-        'Light': { base: 'https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles', suffix: '' },
-        'Street': { base: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles', suffix: '' },
-        'Satellite': { base: 'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles', suffix: '' },
-        'City': { base: 'https://api.mapbox.com/styles/v1/shjorth/ck6hrwoqh0uuy1iqvq5jmcch2/tiles/256', suffix: '@2x' },
-        'Sky': { base: 'https://api.mapbox.com/styles/v1/shjorth/ck6hzf3qq11wg1ijsrtfaouxb/tiles/256', suffix: '@2x' }
-    };
-
-    let currentObserver = null;
-    let currentTheme = null;
-
-    function switchTheme(themeName) {
-        const theme = THEMES[themeName];
-        if (!theme) return;
-
-        currentTheme = themeName;
-
-        // Stop old observer
-        if (currentObserver) {
-            currentObserver.disconnect();
-            currentObserver = null;
-        }
-
-        const tilePane = document.querySelector('.leaflet-tile-pane');
-        if (!tilePane) return;
-
-        // Replace all current tiles
-        tilePane.querySelectorAll('img').forEach(img => {
-            const match = img.src.match(/\/(\d+)\/(\d+)\/(\d+)/);
-            if (match) {
-                img.src = theme.base + '/' + match[1] + '/' + match[2] + '/' + match[3] + theme.suffix + '?access_token=' + TOKEN;
+            if (!_webViewInitialized)
+            {
+                return;
             }
-        });
-
-        // Watch for new tiles
-        currentObserver = new MutationObserver(mutations => {
-            mutations.forEach(m => {
-                m.addedNodes.forEach(node => {
-                    if (node.tagName === 'IMG') {
-                        const match = node.src.match(/\/(\d+)\/(\d+)\/(\d+)/);
-                        if (match) {
-                            node.src = theme.base + '/' + match[1] + '/' + match[2] + '/' + match[3] + theme.suffix + '?access_token=' + TOKEN;
-                        }
-                    }
-                });
-            });
-        });
-        currentObserver.observe(tilePane, { childList: true, subtree: true });
-
-        // Unlock zoom range and force tile refresh
-        try {
-            const app = document.querySelector('#app').__vue_app__;
-            const pinia = app._context.provides.pinia || app.config.globalProperties.$pinia;
-            const map = pinia._s.get('mapStore').map;
-            map.setMinZoom(1);
-            map.setMaxZoom(18);
-
-            // Force tiles to reload by invalidating and doing a tiny pan
-            map.invalidateSize();
-            var center = map.getCenter();
-            map.panTo([center.lat + 0.0001, center.lng], {animate: false});
-            setTimeout(function() {
-                map.panTo([center.lat, center.lng], {animate: false});
-            }, 100);
-        } catch(e) {}
-
-        console.log('[RebelShip] Switched to', themeName, 'theme');
-    }
-
-    function init() {
-        // Wait for map to be ready
-        const tilePane = document.querySelector('.leaflet-tile-pane');
-        if (!tilePane) {
-            setTimeout(init, 500);
-            return;
-        }
-
-        // Start with Dark theme
-        switchTheme('Dark');
-    }
-
-    // Auto-accept cookies
-    function acceptCookies() {
-        const btn = document.querySelector('button.dark-green');
-        if (btn && btn.textContent.includes('accept')) {
-            btn.click();
-            console.log('[RebelShip] Clicked cookie accept button');
-            return true;
-        }
-        return false;
-    }
-
-    // Try to accept cookies periodically
-    let cookieTries = 0;
-    const cookieInterval = setInterval(() => {
-        if (acceptCookies() || cookieTries++ > 20) {
-            clearInterval(cookieInterval);
-        }
-    }, 500);
-
-    // Unlock tanker ops and metropolis in UI by modifying Pinia user store
-    function unlockFeatures() {
-        try {
-            var app = document.querySelector('#app');
-            if (!app || !app.__vue_app__) return;
-
-            var pinia = app.__vue_app__._context.provides.pinia || app.__vue_app__.config.globalProperties.$pinia;
-            if (!pinia || !pinia._s) return;
-
-            var userStore = pinia._s.get('user');
-            if (!userStore || !userStore.user) return;
-
-            var companyType = userStore.user.company_type;
-            if (!companyType) return;
-
-            // Check if already has tanker
-            var hasTanker = Array.isArray(companyType)
-                ? companyType.includes('tanker')
-                : (typeof companyType === 'string' && companyType.indexOf('tanker') >= 0);
-
-            var needsPatch = false;
-            var newCompanyType = companyType;
-            var newMetropolis = userStore.settings ? userStore.settings.metropolis : 0;
-
-            // Unlock tanker if needed
-            if (!hasTanker) {
-                newCompanyType = Array.isArray(companyType)
-                    ? companyType.slice().concat(['tanker'])
-                    : [companyType, 'tanker'];
-                needsPatch = true;
-                console.log('[RebelShip] Will unlock tanker ops');
-            }
-
-            // Unlock metropolis if needed
-            if (userStore.settings && !userStore.settings.metropolis) {
-                newMetropolis = 1;
-                needsPatch = true;
-                console.log('[RebelShip] Will unlock metropolis');
-            }
-
-            if (needsPatch) {
-                userStore.$patch(function(state) {
-                    state.user.company_type = newCompanyType;
-                    if (state.settings) {
-                        state.settings.metropolis = newMetropolis;
-                    }
-                });
-                console.log('[RebelShip] Unlocked! company_type:', userStore.user.company_type, 'metropolis:', userStore.settings.metropolis);
-            }
-        } catch(e) {
-            // Silently fail - store not ready yet
-        }
-    }
-    setInterval(unlockFeatures, 2000);
-    setTimeout(unlockFeatures, 4000);
-
-    var selectedTheme = 'Dark';
-
-    // Only modify the base layers content, keep everything else
-    function fixLayerControl() {
-        var baseDiv = document.querySelector('.leaflet-control-layers-base');
-        if (!baseDiv) return;
-        if (baseDiv.dataset.fixed) return;
-        baseDiv.dataset.fixed = 'true';
-
-        // Remove locked labels, premium-span, and custom-separator
-        baseDiv.querySelectorAll('label.locked').forEach(function(l) { l.remove(); });
-        baseDiv.querySelectorAll('.premium-span').forEach(function(s) { s.remove(); });
-        baseDiv.querySelectorAll('.custom-separator').forEach(function(s) { s.remove(); });
-
-        // Add new premium label
-        var premLabel = document.createElement('div');
-        premLabel.style.cssText = 'color:#4ade80;font-size:11px;padding:4px 0;margin-top:4px;border-top:1px solid #444;';
-        premLabel.textContent = 'Premium (unlocked)';
-        baseDiv.appendChild(premLabel);
-
-        // Add working theme options
-        var themes = ['Dark', 'Light', 'Street', 'Satellite', 'City', 'Sky'];
-        themes.forEach(function(name) {
-            var label = document.createElement('label');
-            var span1 = document.createElement('span');
-            var radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.className = 'leaflet-control-layers-selector';
-            radio.name = 'leaflet-base-layers_678';
-            var span2 = document.createElement('span');
-            span2.textContent = ' ' + name;
-
-            span1.appendChild(radio);
-            span1.appendChild(span2);
-            label.appendChild(span1);
-            label.style.cursor = 'pointer';
-
-            label.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                baseDiv.querySelectorAll('input[type=radio]').forEach(function(r) { r.checked = false; });
-                radio.checked = true;
-                selectedTheme = name;
-                switchTheme(name);
-            };
-
-            baseDiv.appendChild(label);
-        });
-
-        console.log('[RebelShip] Layer control fixed!');
-    }
-
-    setTimeout(init, 2000);
-    setTimeout(fixLayerControl, 2500);
-    setInterval(fixLayerControl, 3000);
-})();
-";
 
             try
             {
-                await WebView.CoreWebView2.ExecuteScriptAsync(mapUnlockScript);
+                // Click the "I accept" button if it exists
+                var script = @"
+                    (function() {
+                        var buttons = document.querySelectorAll('button');
+                        for (var i = 0; i < buttons.length; i++) {
+                            if (buttons[i].textContent.trim() === 'I accept') {
+                                buttons[i].click();
+                                return true;
+                            }
+                        }
+                        return false;
+                    })();
+                ";
+                await WebView.CoreWebView2.ExecuteScriptAsync(script);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore injection errors
+                DebugLogger.Log($"[AutoAccept] Error: {ex.Message}");
+            }
+        }
+
+        private async Task InjectUserScriptsAsync()
+        {
+            if (!_webViewInitialized || WebView.Source == null)
+            {
+                return;
+            }
+
+            _userScriptService.LoadAllScripts();
+
+            DebugLogger.Log($"[UserScript] Total scripts loaded: {_userScriptService.Scripts.Count}");
+            foreach (var s in _userScriptService.Scripts)
+            {
+                DebugLogger.Log($"[UserScript] Script '{s.Name}' - Enabled: {s.Enabled}, RunAt: {s.RunAt}");
+            }
+
+            var matchingScripts = _userScriptService.GetScriptsForUrl(WebView.Source).ToList();
+            DebugLogger.Log($"[UserScript] Matching scripts for {WebView.Source}: {matchingScripts.Count}");
+
+            foreach (var script in matchingScripts)
+            {
+                try
+                {
+                    var code = script.GetCodeWithoutMetadata();
+                    if (string.IsNullOrWhiteSpace(code))
+                    {
+                        continue;
+                    }
+
+                    // Wrap in IIFE to avoid polluting global scope
+                    var wrappedCode = $"(function() {{ {code} }})();";
+
+                    switch (script.RunAt)
+                    {
+                        case RunAt.DocumentEnd:
+                            await WebView.CoreWebView2.ExecuteScriptAsync(wrappedCode);
+                            DebugLogger.Log($"[UserScript] Injected '{script.Name}' at document-end");
+                            break;
+
+                        case RunAt.DocumentIdle:
+                            // Run after a short delay to let the page settle
+                            var idleScript = $"setTimeout(function() {{ {code} }}, 100);";
+                            await WebView.CoreWebView2.ExecuteScriptAsync(idleScript);
+                            DebugLogger.Log($"[UserScript] Injected '{script.Name}' at document-idle");
+                            break;
+
+                        case RunAt.DocumentStart:
+                            // document-start scripts should be registered separately
+                            // They run before the DOM is created, handled in RegisterDocumentStartScripts
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.Log($"[UserScript] Error injecting '{script.Name}': {ex.Message}");
+                }
             }
         }
 
@@ -772,6 +705,43 @@ namespace RebelShipBrowser
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             RefreshPage();
+        }
+
+        private void ScriptsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ScriptManagerDialog(_userScriptService)
+            {
+                Owner = this
+            };
+            dialog.ShowDialog();
+        }
+
+        private void GpuToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            var newValue = !IsGpuEnabled;
+            IsGpuEnabled = newValue;
+            UpdateGpuButtonText();
+
+            var result = System.Windows.MessageBox.Show(
+                $"GPU acceleration has been {(newValue ? "enabled" : "disabled")}.\n\n" +
+                "The browser needs to restart for this change to take effect.\n\n" +
+                "Restart now?",
+                "Restart Required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question
+            );
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Restart the application
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath))
+                {
+                    Process.Start(exePath);
+                    _isClosingCompletely = true;
+                    System.Windows.Application.Current.Shutdown();
+                }
+            }
         }
 
         private async void RestartLoginButton_Click(object sender, RoutedEventArgs e)

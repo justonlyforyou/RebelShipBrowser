@@ -119,17 +119,13 @@ namespace RebelShipBrowser.Installer
         {
             try
             {
-                var installPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "RebelShipBrowser",
-                    "RebelShipBrowser.exe"
-                );
+                var exePath = InstallerSettings.ExePath;
 
-                if (File.Exists(installPath))
+                if (File.Exists(exePath))
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
-                        FileName = installPath,
+                        FileName = exePath,
                         UseShellExecute = true
                     });
                 }

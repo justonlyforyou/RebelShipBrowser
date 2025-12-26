@@ -32,10 +32,27 @@
 
         <TextBlock FontSize="13" Foreground="{StaticResource TextSecondary}"
                   TextWrapping="Wrap" Margin="0,30,0,0">
-            <Run Text="Installation folder: "/>
+            <Run Text="Installation folder:"/>
         </TextBlock>
-        <TextBlock x:Name="InstallPathText" FontSize="12" Foreground="{StaticResource PrimaryColor}"
-                  TextWrapping="Wrap" Margin="0,5,0,0"/>
+
+        <Grid Margin="0,5,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="InstallPathText" Grid.Column="0"
+                    FontSize="12" Padding="8,6"
+                    Background="{StaticResource BackgroundColor}"
+                    Foreground="{StaticResource TextColor}"
+                    BorderBrush="{StaticResource BorderColor}"
+                    TextChanged="InstallPathText_TextChanged"/>
+            <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse..."
+                   Padding="12,6" Margin="8,0,0,0"
+                   Background="{StaticResource BorderColor}"
+                   Foreground="{StaticResource TextColor}"
+                   BorderBrush="{StaticResource BorderColor}"
+                   Click="BrowseButton_Click"/>
+        </Grid>
 
         <TextBlock Text="Click Install to begin the installation."
                   FontSize="13" Foreground="{StaticResource TextSecondary}"

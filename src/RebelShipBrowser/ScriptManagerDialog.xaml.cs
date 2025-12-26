@@ -28,9 +28,12 @@ namespace RebelShipBrowser
 
         private void ScriptList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var hasSelection = ScriptList.SelectedItem != null;
-            EditButton.IsEnabled = hasSelection;
-            DeleteButton.IsEnabled = hasSelection;
+            var script = ScriptList.SelectedItem as Services.UserScript;
+            var isCustom = script != null && !script.IsBundled;
+
+            // Edit and Delete only for custom scripts
+            EditButton.IsEnabled = isCustom;
+            DeleteButton.IsEnabled = isCustom;
         }
 
         private void EnableToggle_Click(object sender, RoutedEventArgs e)

@@ -108,6 +108,59 @@
                         </Button.Style>
                     </Button>
 
+                    <Button x:Name="ScriptsButton" Content="Scripts"
+                           Click="ScriptsButton_Click"
+                           Background="{StaticResource CardBackground}"
+                           Foreground="{StaticResource TextColor}"
+                           BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                           Padding="12,6" FontSize="11"
+                           Cursor="Hand" Margin="0,0,8,0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                   BorderBrush="{TemplateBinding BorderBrush}"
+                                                   BorderThickness="{TemplateBinding BorderThickness}"
+                                                   CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button x:Name="GpuToggleButton" Content="GPU: Off"
+                           Click="GpuToggleButton_Click"
+                           Background="{StaticResource CardBackground}"
+                           Foreground="{StaticResource TextColor}"
+                           BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                           Padding="12,6" FontSize="11"
+                           Cursor="Hand" Margin="0,0,8,0"
+                           ToolTip="Toggle hardware acceleration (requires restart)">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                   BorderBrush="{TemplateBinding BorderBrush}"
+                                                   BorderThickness="{TemplateBinding BorderThickness}"
+                                                   CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
                     <Button x:Name="RestartLoginButton" Content="Logout"
                            Click="RestartLoginButton_Click"
                            Background="{StaticResource WarningColor}"
