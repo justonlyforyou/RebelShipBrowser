@@ -201,6 +201,31 @@
 
             <!-- Right Buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="UpdateButton" Content="Update Scripts" Click="UpdateButton_Click"
+                       Background="{StaticResource PrimaryColor}" Foreground="White"
+                       BorderThickness="0" Padding="15,8" Cursor="Hand" Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
                 <Button x:Name="FolderButton" Content="Open Folder" Click="FolderButton_Click"
                        Background="{StaticResource CardBackground}" Foreground="{StaticResource TextColor}"
                        BorderThickness="1" BorderBrush="{StaticResource BorderColor}"

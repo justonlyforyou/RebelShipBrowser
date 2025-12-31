@@ -93,6 +93,73 @@ namespace RebelShipBrowser
             }
         }
 
+        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateButton.IsEnabled = false;
+            UpdateButton.Content = "Updating...";
+
+            try
+            {
+                var (updated, added, errors) = await _scriptService.UpdateScriptsFromGitHubAsync((current, total, fileName) =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        UpdateButton.Content = $"Updating ({current}/{total})...";
+                    });
+                });
+
+                RefreshScriptList();
+
+                // Build result message
+                var message = $"Update complete!\n\n";
+                if (added > 0)
+                {
+                    message += $"New scripts: {added}\n";
+                }
+                if (updated > 0)
+                {
+                    message += $"Updated scripts: {updated}\n";
+                }
+                if (added == 0 && updated == 0)
+                {
+                    message += "All scripts are up to date.\n";
+                }
+                if (errors.Count > 0)
+                {
+                    message += $"\nErrors ({errors.Count}):\n";
+                    foreach (var error in errors.Take(5))
+                    {
+                        message += $"- {error}\n";
+                    }
+                    if (errors.Count > 5)
+                    {
+                        message += $"... and {errors.Count - 5} more errors";
+                    }
+                }
+
+                System.Windows.MessageBox.Show(
+                    message,
+                    "Script Update",
+                    MessageBoxButton.OK,
+                    errors.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Failed to update scripts:\n\n{ex.Message}",
+                    "Update Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+            finally
+            {
+                UpdateButton.IsEnabled = true;
+                UpdateButton.Content = "Update Scripts";
+            }
+        }
+
         private void FolderButton_Click(object sender, RoutedEventArgs e)
         {
             UserScriptService.OpenScriptsDirectory();

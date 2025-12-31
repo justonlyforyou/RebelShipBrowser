@@ -1,4 +1,6 @@
 using System.IO;
+using System.Net.Http;
+using System.Text.Json;
 
 namespace RebelShipBrowser.Services
 {
@@ -241,6 +243,100 @@ namespace RebelShipBrowser.Services
 
 })();
 ";
+        }
+
+        /// <summary>
+        /// Updates bundled scripts from the GitHub repository
+        /// </summary>
+        /// <param name="progress">Optional progress callback (current, total, filename)</param>
+        /// <returns>Number of scripts updated</returns>
+        public async Task<(int updated, int added, List<string> errors)> UpdateScriptsFromGitHubAsync(Action<int, int, string>? progress = null)
+        {
+            const string repoApiUrl = "https://api.github.com/repos/justonlyforyou/shippingmanager_user_scripts/contents";
+            const string rawBaseUrl = "https://raw.githubusercontent.com/justonlyforyou/shippingmanager_user_scripts/main/";
+
+            var errors = new List<string>();
+            int updated = 0;
+            int added = 0;
+
+            EnsureDirectoriesExist();
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "RebelShipBrowser");
+
+            try
+            {
+                // Get list of files from GitHub API
+                DebugLogger.Log("[UserScriptService] Fetching script list from GitHub...");
+                var response = await httpClient.GetStringAsync(new Uri(repoApiUrl));
+                var files = JsonSerializer.Deserialize<JsonElement[]>(response);
+
+                if (files == null)
+                {
+                    errors.Add("Failed to parse GitHub API response");
+                    return (0, 0, errors);
+                }
+
+                // Filter for .user.js files
+                var scriptFiles = files.Where(f =>
+                    f.TryGetProperty("name", out var name) &&
+                    name.GetString()?.EndsWith(".user.js", StringComparison.OrdinalIgnoreCase) == true
+                ).ToList();
+
+                DebugLogger.Log($"[UserScriptService] Found {scriptFiles.Count} userscripts on GitHub");
+
+                int current = 0;
+                foreach (var file in scriptFiles)
+                {
+                    current++;
+                    var fileName = file.GetProperty("name").GetString()!;
+                    progress?.Invoke(current, scriptFiles.Count, fileName);
+
+                    try
+                    {
+                        // Download raw script content
+                        var scriptUrl = new Uri(rawBaseUrl + fileName);
+                        var scriptContent = await httpClient.GetStringAsync(scriptUrl);
+
+                        // Check if file already exists
+                        var localPath = Path.Combine(BundledDirectoryPath, fileName);
+                        bool isNew = !File.Exists(localPath);
+
+                        // Write to bundled directory
+                        await File.WriteAllTextAsync(localPath, scriptContent);
+
+                        if (isNew)
+                        {
+                            added++;
+                            DebugLogger.Log($"[UserScriptService] Added new script: {fileName}");
+                        }
+                        else
+                        {
+                            updated++;
+                            DebugLogger.Log($"[UserScriptService] Updated script: {fileName}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = $"Failed to download {fileName}: {ex.Message}";
+                        errors.Add(error);
+                        DebugLogger.LogError($"[UserScriptService] {error}");
+                    }
+                }
+
+                // Reload scripts to pick up changes (preserves enabled state via settings)
+                LoadAllScripts();
+
+                DebugLogger.Log($"[UserScriptService] Update complete: {updated} updated, {added} new, {errors.Count} errors");
+            }
+            catch (Exception ex)
+            {
+                var error = $"Failed to fetch script list: {ex.Message}";
+                errors.Add(error);
+                DebugLogger.LogError($"[UserScriptService] {error}");
+            }
+
+            return (updated, added, errors);
         }
     }
 }
