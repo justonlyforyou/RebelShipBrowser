@@ -749,22 +749,38 @@ namespace RebelShipBrowser
             await ReLoginAsync();
         }
 
-        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+        private void UpdateButton_Click(object sender, RoutedEventArgs e)
         {
-            UpdateButton.IsEnabled = false;
-            UpdateButton.Content = "Downloading...";
-
-            var success = await UpdateService.DownloadAndInstallUpdateAsync();
-            if (success)
+            if (UpdateService.DownloadUrl == null || UpdateService.DownloadSize == 0)
             {
-                // Exit the app - installer will handle the rest
-                ExitApplication();
+                ShowError("Update information not available. Please try again.");
+                return;
             }
-            else
+
+            string? installerPath = null;
+
+            using (var dialog = new DownloadDialog(UpdateService.DownloadUrl, UpdateService.DownloadSize)
             {
-                UpdateButton.Content = "Update Failed";
-                UpdateButton.IsEnabled = true;
-                ShowError("Failed to download the update.\n\nPlease try again or download manually from GitHub.");
+                Owner = this
+            })
+            {
+                var result = dialog.ShowDialog();
+                if (result == true && dialog.DownloadSuccessful)
+                {
+                    installerPath = dialog.DownloadedFilePath;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(installerPath))
+            {
+                // Start installer AFTER closing the app to avoid file locking
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = installerPath,
+                    UseShellExecute = true
+                };
+                Process.Start(startInfo);
+                ExitApplication();
             }
         }
 

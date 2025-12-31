@@ -3,10 +3,11 @@
 // @namespace    https://shippingmanager.cc/
 // @version      1.0
 // @description  Fixes broken exclude buttons for CEO and adds missing ones for regular members
-// @author       JohnDoe
+// @author       https://github.com/justonlyforyou/
 // @match        https://shippingmanager.cc/*
 // @grant        none
 // @run-at       document-end
+// @enabled      false
 // ==/UserScript==
 
 (function() {

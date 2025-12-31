@@ -37,6 +37,40 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore RebelShipBrowser.sln
 
+      - name: Fetch userscripts from GitHub
+        shell: pwsh
+        run: |
+          $BundledDir = "userscripts/bundled"
+          $CustomDir = "userscripts/custom"
+          $GitHubRepo = "justonlyforyou/shippingmanager_user_scripts"
+          $GitHubApiUrl = "https://api.github.com/repos/$GitHubRepo/contents"
+          $GitHubRawUrl = "https://raw.githubusercontent.com/$GitHubRepo/main"
+
+          # Create directories
+          New-Item -ItemType Directory -Path $BundledDir -Force | Out-Null
+          New-Item -ItemType Directory -Path $CustomDir -Force | Out-Null
+
+          # Clear existing bundled scripts
+          Remove-Item "$BundledDir/*.js" -Force -ErrorAction SilentlyContinue
+
+          # Fetch file list from GitHub API
+          $Headers = @{ "User-Agent" = "RebelShipBrowser-Build" }
+          $Response = Invoke-RestMethod -Uri $GitHubApiUrl -Headers $Headers -Method Get
+
+          $ScriptCount = 0
+          foreach ($File in $Response) {
+              if ($File.name -like "*.user.js") {
+                  $DownloadUrl = "$GitHubRawUrl/$($File.name)"
+                  $DestPath = Join-Path $BundledDir $File.name
+
+                  Write-Host "Downloading: $($File.name)"
+                  Invoke-WebRequest -Uri $DownloadUrl -OutFile $DestPath -Headers $Headers
+                  $ScriptCount++
+              }
+          }
+
+          Write-Host "Downloaded $ScriptCount userscripts from GitHub"
+
       - name: Build Main Application
         run: |
           dotnet publish src/RebelShipBrowser/RebelShipBrowser.csproj `
@@ -48,6 +82,12 @@ jobs:
             -p:AssemblyVersion=${{ steps.version.outputs.VERSION }}.0 `
             -p:FileVersion=${{ steps.version.outputs.VERSION }}.0 `
             -o publish/app
+
+      - name: Copy userscripts to app
+        shell: pwsh
+        run: |
+          Copy-Item -Path userscripts -Destination publish/app/userscripts -Recurse -Force
+          Write-Host "Copied userscripts folder to publish/app"
 
       - name: Create payload zip
         shell: pwsh

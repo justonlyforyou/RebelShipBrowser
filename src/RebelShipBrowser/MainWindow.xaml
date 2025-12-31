@@ -53,7 +53,7 @@
                                   VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </StackPanel>
                     <TextBlock FontSize="10" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0">
-                        <Run Text="by "/><Hyperlink NavigateUri="https://github.com/justonlyforyou/rebelship-browser"
+                        <Run Text="by "/><Hyperlink NavigateUri="https://github.com/justonlyforyou/RebelShipBrowser"
                                                    RequestNavigate="Hyperlink_RequestNavigate"
                                                    Foreground="{StaticResource PrimaryColor}">justonlyforyou</Hyperlink>
                     </TextBlock>

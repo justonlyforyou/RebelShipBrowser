@@ -19,6 +19,7 @@ namespace RebelShipBrowser.Services
         private static readonly string ScriptsDirectoryPath = BaseDirectoryPath;
 
         private readonly List<UserScript> _scripts = new();
+        private readonly UserScriptSettings _settings;
 
         public IReadOnlyList<UserScript> Scripts => _scripts.AsReadOnly();
 
@@ -40,6 +41,7 @@ namespace RebelShipBrowser.Services
         public UserScriptService()
         {
             EnsureDirectoriesExist();
+            _settings = UserScriptSettings.Load();
             LoadAllScripts();
         }
 
@@ -69,8 +71,10 @@ namespace RebelShipBrowser.Services
                     {
                         var script = UserScript.Parse(filePath);
                         script.IsBundled = true;
+                        // Apply saved enabled state from settings (survives updates)
+                        script.Enabled = _settings.IsEnabled(script.FileName);
                         _scripts.Add(script);
-                        DebugLogger.Log($"[UserScriptService] Loaded bundled script: {script.Name} ({script.FileName})");
+                        DebugLogger.Log($"[UserScriptService] Loaded bundled script: {script.Name} ({script.FileName}), enabled: {script.Enabled}");
                     }
                     catch (Exception ex)
                     {
@@ -88,8 +92,10 @@ namespace RebelShipBrowser.Services
                     {
                         var script = UserScript.Parse(filePath);
                         script.IsBundled = false;
+                        // Apply saved enabled state from settings
+                        script.Enabled = _settings.IsEnabled(script.FileName);
                         _scripts.Add(script);
-                        DebugLogger.Log($"[UserScriptService] Loaded custom script: {script.Name} ({script.FileName})");
+                        DebugLogger.Log($"[UserScriptService] Loaded custom script: {script.Name} ({script.FileName}), enabled: {script.Enabled}");
                     }
                     catch (Exception ex)
                     {
@@ -110,18 +116,23 @@ namespace RebelShipBrowser.Services
 
             EnsureDirectoriesExist();
 
+            // Save enabled state to settings file (persists across updates)
+            _settings.SetEnabled(script.FileName, script.Enabled);
+            _settings.Save();
+
             // Generate full content with metadata
             var metaBlock = script.GenerateMetadataBlock();
             var codeWithoutMeta = script.GetCodeWithoutMetadata();
             var fullContent = metaBlock + Environment.NewLine + Environment.NewLine + codeWithoutMeta;
 
             File.WriteAllText(script.FilePath, fullContent);
-            DebugLogger.Log($"[UserScriptService] Saved script: {script.Name} (bundled: {script.IsBundled})");
+            DebugLogger.Log($"[UserScriptService] Saved script: {script.Name} (bundled: {script.IsBundled}, enabled: {script.Enabled})");
 
             // Reload to ensure consistency
             var index = _scripts.FindIndex(s => s.FilePath == script.FilePath);
             var reloadedScript = UserScript.Parse(script.FilePath);
             reloadedScript.IsBundled = script.IsBundled; // Preserve bundled flag
+            reloadedScript.Enabled = script.Enabled; // Preserve enabled state
 
             if (index >= 0)
             {

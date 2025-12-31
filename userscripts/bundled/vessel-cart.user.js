@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Shipping Manager - Vessel Shopping Cart
 // @description Add vessels to cart and bulk purchase them
-// @version     3.4
+// @version     3.5
 // @author      https://github.com/justonlyforyou/
 // @match       https://shippingmanager.cc/*
 // @grant       none
@@ -14,6 +14,8 @@
 
 (function() {
     'use strict';
+
+    const isMobile = window.innerWidth < 1024;
 
     // Inject interceptor script into page context (has access to Vue internals)
     const interceptorScript = document.createElement('script');
@@ -237,7 +239,7 @@
 
 
     // RebelShip Menu Logo SVG
-    const REBELSHIP_LOGO = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z"/></svg>';
+    const REBELSHIP_LOGO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.65 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.5L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.42c-.26.08-.48.26-.6.5s-.15.52-.06.78L3.95 19zM6 6h12v3.97L12 8 6 9.97V6z"/></svg>';
 
     const CART_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>';
 
@@ -489,6 +491,27 @@
         setTimeout(() => notif.remove(), 2000);
     }
 
+    // Get or create shared mobile row (fixed at top)
+    function getOrCreateMobileRow() {
+        var existing = document.getElementById('rebel-mobile-row');
+        if (existing) return existing;
+
+        // Create fixed row at top of screen
+        var row = document.createElement('div');
+        row.id = 'rebel-mobile-row';
+        row.style.cssText = 'position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:10px;background:#1a1a2e;padding:4px 6px;font-size:14px;z-index:9999;';
+
+        document.body.appendChild(row);
+
+        // Add margin to push page content down
+        var appContainer = document.querySelector('#app') || document.body.firstElementChild;
+        if (appContainer) {
+            appContainer.style.marginTop = '2px';
+        }
+
+        return row;
+    }
+
     // Get or create RebelShip menu
     function getOrCreateRebelShipMenu() {
         let menu = document.getElementById('rebelship-menu');
@@ -496,13 +519,51 @@
             return menu.querySelector('.rebelship-dropdown');
         }
 
+        // Mobile: insert into mobile row
+        if (isMobile) {
+            var row = getOrCreateMobileRow();
+            if (!row) return null;
+
+            const container = document.createElement('div');
+            container.id = 'rebelship-menu';
+            container.style.cssText = 'position:relative;display:inline-block;margin-left:auto;';
+
+            const btn = document.createElement('button');
+            btn.id = 'rebelship-menu-btn';
+            btn.innerHTML = REBELSHIP_LOGO;
+            btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:18px;height:18px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border:none;border-radius:6px;cursor:pointer;';
+            btn.title = 'RebelShip Menu';
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'rebelship-dropdown';
+            dropdown.style.cssText = 'display:none;position:absolute;top:100%;right:0;background:#1f2937;border:1px solid #374151;border-radius:4px;min-width:180px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);margin-top:4px;';
+
+            container.appendChild(btn);
+            container.appendChild(dropdown);
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+
+            row.appendChild(container);
+            return dropdown;
+        }
+
+        // Desktop: insert before messaging icon
         let messagingIcon = document.querySelector('div.messaging.cursor-pointer');
         if (!messagingIcon) messagingIcon = document.querySelector('.messaging');
         if (!messagingIcon) return null;
 
         const container = document.createElement('div');
         container.id = 'rebelship-menu';
-        container.style.cssText = 'position:relative;display:inline-block;vertical-align:middle;margin-right:10px;';
+            container.style.cssText = 'position:relative;display:inline-block;vertical-align:middle;margin-right:10px;margin-left:auto;';
 
         const btn = document.createElement('button');
         btn.id = 'rebelship-menu-btn';
@@ -535,41 +596,62 @@
         return dropdown;
     }
 
-    // Create standalone cart button (always visible, left of RebelShip menu)
+    // Create standalone cart button
     function createCartButton() {
         if (document.getElementById('rebelship-cart-btn')) return;
 
-        // Wait for RebelShip menu to exist first
-        let rebelshipMenu = document.getElementById('rebelship-menu');
-        if (!rebelshipMenu) {
-            // Try messaging icon as fallback anchor
-            let messagingIcon = document.querySelector('div.messaging.cursor-pointer');
-            if (!messagingIcon) messagingIcon = document.querySelector('.messaging');
-            if (!messagingIcon) {
-                setTimeout(createCartButton, 1000);
-                return;
-            }
-            // Insert before messaging if no rebelship menu yet
-            rebelshipMenu = messagingIcon;
-        }
+        const cart = getCart();
+        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
 
         const btn = document.createElement('button');
         btn.id = 'rebelship-cart-btn';
-        const cart = getCart();
-        const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-        btn.innerHTML = CART_ICON + ' <span id="rebelship-cart-count">' + count + '</span>';
-        btn.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;margin-right:10px;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+        btn.innerHTML = CART_ICON + ' <span id="rebelship-cart-count">(' + count + ')</span>';
         btn.title = 'Shopping Cart - Click to open';
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             showCartModal();
         });
 
+        // Mobile: insert into mobile row
+        if (isMobile) {
+            var row = getOrCreateMobileRow();
+            if (!row) {
+                setTimeout(createCartButton, 1000);
+                return;
+            }
+
+            btn.style.cssText = 'display:flex;align-items:center;gap:2px;padding:2px 6px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;';
+
+            var rebelMenu = document.getElementById('rebelship-menu');
+            if (rebelMenu) {
+                row.insertBefore(btn, rebelMenu);
+            } else {
+                row.appendChild(btn);
+            }
+
+            console.log('[VesselCart] Cart button created (mobile)');
+            return;
+        }
+
+        // Desktop: insert before RebelShip menu or messaging icon
+        let rebelshipMenu = document.getElementById('rebelship-menu');
+        if (!rebelshipMenu) {
+            let messagingIcon = document.querySelector('div.messaging.cursor-pointer');
+            if (!messagingIcon) messagingIcon = document.querySelector('.messaging');
+            if (!messagingIcon) {
+                setTimeout(createCartButton, 1000);
+                return;
+            }
+            rebelshipMenu = messagingIcon;
+        }
+
+        btn.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;margin-right:10px;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
+
         if (rebelshipMenu.parentNode) {
             rebelshipMenu.parentNode.insertBefore(btn, rebelshipMenu);
         }
 
-        console.log('[VesselCart] Cart button created');
+        console.log('[VesselCart] Cart button created (desktop)');
     }
 
     // Update cart badge
@@ -580,7 +662,7 @@
         // Update standalone cart button count
         const cartCount = document.getElementById('rebelship-cart-count');
         if (cartCount) {
-            cartCount.textContent = totalItems;
+            cartCount.textContent = '(' + totalItems + ')';
         }
     }
 
@@ -601,7 +683,7 @@
         item.style.cssText = 'position:relative;';
 
         const itemBtn = document.createElement('div');
-        itemBtn.style.cssText = 'padding:10px 12px;cursor:pointer;color:#fff;font-size:13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #374151;';
+        itemBtn.style.cssText = 'padding:10px 12px;cursor:pointer;color:#fff;font-size:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #374151;';
         itemBtn.innerHTML = '<span>' + label + '</span>' + (hasSubmenu ? '<span style="font-size:10px;">&#9664;</span>' : '');
 
         itemBtn.addEventListener('mouseenter', () => itemBtn.style.background = '#374151');

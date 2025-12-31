@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics;
-using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
@@ -12,7 +10,7 @@ namespace RebelShipBrowser.Services
     {
         private static readonly HttpClient HttpClient = new()
         {
-            Timeout = TimeSpan.FromSeconds(15)
+            Timeout = TimeSpan.FromSeconds(30)
         };
 
         private const string GitHubReleasesUrl = "https://api.github.com/repos/justonlyforyou/RebelShipBrowser/releases/latest";
@@ -28,6 +26,7 @@ namespace RebelShipBrowser.Services
 
         public static string? LatestVersion { get; private set; }
         public static Uri? DownloadUrl { get; private set; }
+        public static long DownloadSize { get; private set; }
 
         /// <summary>
         /// Checks GitHub for the latest release and returns true if an update is available
@@ -87,7 +86,11 @@ namespace RebelShipBrowser.Services
                                     if (!string.IsNullOrEmpty(urlString))
                                     {
                                         DownloadUrl = new Uri(urlString);
-                                        DebugLogger.Log($"[UpdateService] Found setup: {name}");
+                                        if (asset.TryGetProperty("size", out var sizeProp))
+                                        {
+                                            DownloadSize = sizeProp.GetInt64();
+                                        }
+                                        DebugLogger.Log($"[UpdateService] Found setup: {name} ({DownloadSize} bytes)");
                                     }
                                     break;
                                 }
@@ -112,50 +115,6 @@ namespace RebelShipBrowser.Services
             catch (Exception ex)
             {
                 DebugLogger.Log($"[UpdateService] Error checking for updates: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Downloads the setup file and runs it
-        /// </summary>
-        public static async Task<bool> DownloadAndInstallUpdateAsync()
-        {
-            if (DownloadUrl == null)
-            {
-                DebugLogger.Log("[UpdateService] No download URL available");
-                return false;
-            }
-
-            try
-            {
-                DebugLogger.Log($"[UpdateService] Downloading update from: {DownloadUrl.AbsoluteUri}");
-
-                // Download to temp folder
-                var tempPath = Path.Combine(Path.GetTempPath(), "RebelShipBrowser_Setup.exe");
-
-                using var response = await HttpClient.GetAsync(DownloadUrl);
-                response.EnsureSuccessStatusCode();
-
-                await using var fileStream = new FileStream(tempPath, FileMode.Create);
-                await response.Content.CopyToAsync(fileStream);
-
-                DebugLogger.Log($"[UpdateService] Downloaded to: {tempPath}");
-
-                // Run the setup
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = tempPath,
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
-
-                DebugLogger.Log("[UpdateService] Setup started, exiting app...");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                DebugLogger.Log($"[UpdateService] Error downloading update: {ex.Message}");
                 return false;
             }
         }

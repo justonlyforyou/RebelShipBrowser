@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Shipping Manager - Reputation Display
 // @description Shows reputation next to company name, click to open Finance modal
-// @version     3.6
+// @version     3.7
 // @author      joseywales - Pimped by https://github.com/justonlyforyou/
 // @match       https://shippingmanager.cc/*
 // @grant       none
@@ -13,6 +13,7 @@
     'use strict';
 
     const API_URL = "https://shippingmanager.cc/api/user/get-user-settings";
+    const isMobile = window.innerWidth < 1024;
     let reputationElement = null;
 
     function getReputationColor(rep) {
@@ -21,35 +22,68 @@
         return "#ff8a80";
     }
 
+    // Get or create shared mobile row (fixed at top)
+    function getOrCreateMobileRow() {
+        var existing = document.getElementById('rebel-mobile-row');
+        if (existing) return existing;
+
+        var row = document.createElement('div');
+        row.id = 'rebel-mobile-row';
+        row.style.cssText = 'position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:10px;background:#1a1a2e;padding:4px 6px;font-size:14px;z-index:9999;';
+
+        document.body.appendChild(row);
+
+        var appContainer = document.querySelector('#app') || document.body.firstElementChild;
+        if (appContainer) {
+            appContainer.style.marginTop = '2px';
+        }
+
+        return row;
+    }
+
     function createReputationLink() {
         if (reputationElement) return reputationElement;
 
+        // Mobile: insert into mobile row
+        if (isMobile) {
+            var row = getOrCreateMobileRow();
+            if (!row) return null;
+
+            reputationElement = document.createElement('div');
+            reputationElement.id = 'reputation-display';
+            reputationElement.style.cssText = 'display:flex;align-items:center;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:#ffdf5c;color:#333;';
+            reputationElement.textContent = 'Rep: ...';
+
+            reputationElement.addEventListener('click', () => {
+                const stockInfo = document.querySelector('.stockInfo');
+                if (stockInfo) {
+                    stockInfo.click();
+                    setTimeout(() => {
+                        const marketingBtn = document.getElementById('marketing-page-btn');
+                        if (marketingBtn) {
+                            marketingBtn.click();
+                        }
+                    }, 300);
+                }
+            });
+
+            var menu = row.querySelector('#rebelship-menu'); if (menu) { row.insertBefore(reputationElement, menu); } else { row.appendChild(reputationElement); }
+            return reputationElement;
+        }
+
+        // Desktop: insert after stockInfo
         const companyContent = document.querySelector('.companyContent');
         if (!companyContent) return null;
 
-        // Create reputation element
         reputationElement = document.createElement('div');
         reputationElement.id = 'reputation-display';
-        reputationElement.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            margin-left: 10px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            background: #ffdf5c;
-            color: #333;
-        `;
+        reputationElement.style.cssText = 'display:inline-flex;align-items:center;margin-left:10px;padding:2px 8px;border-radius:4px;font-size:13px;font-weight:bold;cursor:pointer;background:#ffdf5c;color:#333;';
         reputationElement.textContent = 'Reputation: ...';
 
-        // Click handler - open Finance modal via stockInfo click
         reputationElement.addEventListener('click', () => {
             const stockInfo = document.querySelector('.stockInfo');
             if (stockInfo) {
                 stockInfo.click();
-                // Wait for modal to open, then click Marketing tab
                 setTimeout(() => {
                     const marketingBtn = document.getElementById('marketing-page-btn');
                     if (marketingBtn) {
@@ -59,7 +93,6 @@
             }
         });
 
-        // Insert after stockInfo
         const stockInfo = companyContent.querySelector('.stockInfo');
         if (stockInfo && stockInfo.parentNode) {
             stockInfo.parentNode.insertBefore(reputationElement, stockInfo.nextSibling);
@@ -80,14 +113,13 @@
 
             if (rep === undefined || rep === null) return;
 
-            // Try to create/find the element
             let el = document.getElementById('reputation-display');
             if (!el) {
                 el = createReputationLink();
             }
 
             if (el) {
-                el.textContent = `Reputation: ${rep}%`;
+                el.textContent = isMobile ? 'Rep: ' + rep + '%' : 'Reputation: ' + rep + '%';
                 el.style.background = getReputationColor(rep);
                 el.style.color = rep >= 80 ? '#333' : '#330000';
             }
@@ -96,14 +128,20 @@
         }
     }
 
-    // Wait for page to load, then start
     function init() {
-        const companyContent = document.querySelector('.companyContent');
-        if (companyContent) {
-            updateReputation();
-            setInterval(updateReputation, 2 * 60 * 1000);
+        if (isMobile) {
+            setTimeout(() => {
+                updateReputation();
+                setInterval(updateReputation, 2 * 60 * 1000);
+            }, 3000);
         } else {
-            setTimeout(init, 1000);
+            const companyContent = document.querySelector('.companyContent');
+            if (companyContent) {
+                updateReputation();
+                setInterval(updateReputation, 2 * 60 * 1000);
+            } else {
+                setTimeout(init, 1000);
+            }
         }
     }
 
