@@ -66,6 +66,12 @@
                                                Visibility="{Binding IsBundled, Converter={StaticResource InverseBoolToVisibility}}">
                                             <TextBlock Text="Custom" FontSize="10" Foreground="White"/>
                                         </Border>
+                                        <!-- Update Available Badge -->
+                                        <Border Background="#f59e0b" CornerRadius="3"
+                                               Padding="6,2" Margin="8,0,0,0"
+                                               Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="Update" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                                        </Border>
                                     </StackPanel>
                                     <TextBlock Text="{Binding Description}" FontSize="11"
                                               Foreground="{StaticResource TextSecondary}"
@@ -73,9 +79,13 @@
                                 </StackPanel>
 
                                 <!-- Version -->
-                                <TextBlock Grid.Column="2" Text="{Binding Version}"
-                                          FontSize="11" Foreground="{StaticResource TextSecondary}"
-                                          VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <TextBlock Text="{Binding Version}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                    <TextBlock Text=" -> " FontSize="11" Foreground="#f59e0b"
+                                              Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBlock Text="{Binding RemoteVersion}" FontSize="11" Foreground="#f59e0b" FontWeight="Bold"
+                                              Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVisibility}}"/>
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -201,30 +211,48 @@
 
             <!-- Right Buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="UpdateButton" Content="Update Scripts" Click="UpdateButton_Click"
-                       Background="{StaticResource PrimaryColor}" Foreground="White"
-                       BorderThickness="0" Padding="15,8" Cursor="Hand" Margin="0,0,8,0">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
-                                               CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsEnabled" Value="False">
-                                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                <Grid Margin="0,0,8,0">
+                    <Button x:Name="UpdateButton" Click="UpdateButton_Click"
+                           Background="{StaticResource PrimaryColor}" Foreground="White"
+                           BorderThickness="0" Padding="15,8" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                                   CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="UpdateButtonText" Text="Update Scripts"/>
+                            <Border x:Name="UpdateBadge" Background="#dc2626" CornerRadius="8"
+                                   Padding="6,2" Margin="8,0,0,0" Visibility="Collapsed"
+                                   VerticalAlignment="Center">
+                                <TextBlock x:Name="UpdateBadgeText" Text="0" FontSize="10"
+                                          Foreground="White" FontWeight="Bold"/>
+                            </Border>
+                        </StackPanel>
+                    </Button>
+                    <!-- Pulsing glow effect behind button when updates available -->
+                    <Border x:Name="UpdateGlow" Background="#f59e0b" CornerRadius="4"
+                           Opacity="0" IsHitTestVisible="False" Margin="-2">
+                        <Border.Effect>
+                            <BlurEffect Radius="10"/>
+                        </Border.Effect>
+                    </Border>
+                </Grid>
 
                 <Button x:Name="FolderButton" Content="Open Folder" Click="FolderButton_Click"
                        Background="{StaticResource CardBackground}" Foreground="{StaticResource TextColor}"

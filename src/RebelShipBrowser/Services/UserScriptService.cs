@@ -106,6 +106,13 @@ namespace RebelShipBrowser.Services
                 }
             }
 
+            // Sort by Order (ascending), then by Name
+            _scripts.Sort((a, b) =>
+            {
+                var orderCompare = a.Order.CompareTo(b.Order);
+                return orderCompare != 0 ? orderCompare : string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            });
+
             DebugLogger.Log($"[UserScriptService] Loaded {_scripts.Count} script(s) ({_scripts.Count(s => s.IsBundled)} bundled, {_scripts.Count(s => !s.IsBundled)} custom)");
         }
 
@@ -246,18 +253,112 @@ namespace RebelShipBrowser.Services
         }
 
         /// <summary>
+        /// Checks for script updates from GitHub without downloading
+        /// </summary>
+        /// <returns>Number of scripts with available updates</returns>
+        public async Task<int> CheckForUpdatesAsync()
+        {
+            const string rawBaseUrl = "https://raw.githubusercontent.com/justonlyforyou/shippingmanager_user_scripts/main/";
+            int updatesAvailable = 0;
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "RebelShipBrowser");
+
+            foreach (var script in _scripts.Where(s => s.IsBundled))
+            {
+                try
+                {
+                    var scriptUrl = new Uri(rawBaseUrl + script.FileName);
+                    var remoteContent = await httpClient.GetStringAsync(scriptUrl);
+
+                    // Extract version from remote content
+                    var versionMatch = System.Text.RegularExpressions.Regex.Match(
+                        remoteContent,
+                        @"//\s*@version\s+(.+)$",
+                        System.Text.RegularExpressions.RegexOptions.Multiline
+                    );
+
+                    if (versionMatch.Success)
+                    {
+                        var remoteVersion = versionMatch.Groups[1].Value.Trim();
+                        script.RemoteVersion = remoteVersion;
+
+                        if (IsNewerVersion(remoteVersion, script.Version))
+                        {
+                            script.HasUpdate = true;
+                            updatesAvailable++;
+                            DebugLogger.Log($"[UserScriptService] Update available for {script.FileName}: {script.Version} -> {remoteVersion}");
+                        }
+                        else
+                        {
+                            script.HasUpdate = false;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.LogError($"[UserScriptService] Failed to check update for {script.FileName}: {ex.Message}");
+                }
+            }
+
+            DebugLogger.Log($"[UserScriptService] Update check complete: {updatesAvailable} updates available");
+            return updatesAvailable;
+        }
+
+        /// <summary>
+        /// Compares version strings (e.g., "1.2" vs "1.3")
+        /// </summary>
+        private static bool IsNewerVersion(string remoteVersion, string? localVersion)
+        {
+            if (string.IsNullOrEmpty(localVersion))
+            {
+                return true;
+            }
+
+            try
+            {
+                var remoteParts = remoteVersion.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+                var localParts = localVersion.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+
+                var maxLength = Math.Max(remoteParts.Length, localParts.Length);
+
+                for (int i = 0; i < maxLength; i++)
+                {
+                    var remote = i < remoteParts.Length ? remoteParts[i] : 0;
+                    var local = i < localParts.Length ? localParts[i] : 0;
+
+                    if (remote > local)
+                    {
+                        return true;
+                    }
+                    if (remote < local)
+                    {
+                        return false;
+                    }
+                }
+
+                return false;
+            }
+            catch
+            {
+                return !string.Equals(remoteVersion, localVersion, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        /// <summary>
         /// Updates bundled scripts from the GitHub repository
         /// </summary>
         /// <param name="progress">Optional progress callback (current, total, filename)</param>
-        /// <returns>Number of scripts updated</returns>
-        public async Task<(int updated, int added, List<string> errors)> UpdateScriptsFromGitHubAsync(Action<int, int, string>? progress = null)
+        /// <returns>Lists of updated, added, deleted script names and errors</returns>
+        public async Task<(List<string> updated, List<string> added, List<string> deleted, List<string> errors)> UpdateScriptsFromGitHubAsync(Action<int, int, string>? progress = null)
         {
             const string repoApiUrl = "https://api.github.com/repos/justonlyforyou/shippingmanager_user_scripts/contents";
             const string rawBaseUrl = "https://raw.githubusercontent.com/justonlyforyou/shippingmanager_user_scripts/main/";
 
             var errors = new List<string>();
-            int updated = 0;
-            int added = 0;
+            var updated = new List<string>();
+            var added = new List<string>();
+            var deleted = new List<string>();
 
             EnsureDirectoriesExist();
 
@@ -274,7 +375,7 @@ namespace RebelShipBrowser.Services
                 if (files == null)
                 {
                     errors.Add("Failed to parse GitHub API response");
-                    return (0, 0, errors);
+                    return (updated, added, deleted, errors);
                 }
 
                 // Filter for .user.js files
@@ -283,7 +384,33 @@ namespace RebelShipBrowser.Services
                     name.GetString()?.EndsWith(".user.js", StringComparison.OrdinalIgnoreCase) == true
                 ).ToList();
 
+                var remoteFileNames = scriptFiles
+                    .Select(f => f.GetProperty("name").GetString()!)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 DebugLogger.Log($"[UserScriptService] Found {scriptFiles.Count} userscripts on GitHub");
+
+                // Delete local bundled scripts that no longer exist on GitHub
+                if (Directory.Exists(BundledDirectoryPath))
+                {
+                    foreach (var localFile in Directory.GetFiles(BundledDirectoryPath, "*.js"))
+                    {
+                        var localFileName = Path.GetFileName(localFile);
+                        if (!remoteFileNames.Contains(localFileName))
+                        {
+                            try
+                            {
+                                File.Delete(localFile);
+                                deleted.Add(localFileName);
+                                DebugLogger.Log($"[UserScriptService] Deleted obsolete script: {localFileName}");
+                            }
+                            catch (Exception ex)
+                            {
+                                DebugLogger.LogError($"[UserScriptService] Failed to delete {localFileName}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
 
                 int current = 0;
                 foreach (var file in scriptFiles)
@@ -302,18 +429,42 @@ namespace RebelShipBrowser.Services
                         var localPath = Path.Combine(BundledDirectoryPath, fileName);
                         bool isNew = !File.Exists(localPath);
 
-                        // Write to bundled directory
-                        await File.WriteAllTextAsync(localPath, scriptContent);
-
                         if (isNew)
                         {
-                            added++;
+                            // New script - just save it
+                            await File.WriteAllTextAsync(localPath, scriptContent);
+                            added.Add(fileName);
                             DebugLogger.Log($"[UserScriptService] Added new script: {fileName}");
                         }
                         else
                         {
-                            updated++;
-                            DebugLogger.Log($"[UserScriptService] Updated script: {fileName}");
+                            // Existing script - check version before updating
+                            var remoteVersionMatch = System.Text.RegularExpressions.Regex.Match(
+                                scriptContent,
+                                @"//\s*@version\s+(.+)$",
+                                System.Text.RegularExpressions.RegexOptions.Multiline
+                            );
+
+                            var localContent = await File.ReadAllTextAsync(localPath);
+                            var localVersionMatch = System.Text.RegularExpressions.Regex.Match(
+                                localContent,
+                                @"//\s*@version\s+(.+)$",
+                                System.Text.RegularExpressions.RegexOptions.Multiline
+                            );
+
+                            var remoteVersion = remoteVersionMatch.Success ? remoteVersionMatch.Groups[1].Value.Trim() : "0";
+                            var localVersion = localVersionMatch.Success ? localVersionMatch.Groups[1].Value.Trim() : "0";
+
+                            if (IsNewerVersion(remoteVersion, localVersion))
+                            {
+                                await File.WriteAllTextAsync(localPath, scriptContent);
+                                updated.Add($"{fileName} ({localVersion} -> {remoteVersion})");
+                                DebugLogger.Log($"[UserScriptService] Updated script: {fileName} ({localVersion} -> {remoteVersion})");
+                            }
+                            else
+                            {
+                                DebugLogger.Log($"[UserScriptService] Script up to date: {fileName} (v{localVersion})");
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -327,7 +478,7 @@ namespace RebelShipBrowser.Services
                 // Reload scripts to pick up changes (preserves enabled state via settings)
                 LoadAllScripts();
 
-                DebugLogger.Log($"[UserScriptService] Update complete: {updated} updated, {added} new, {errors.Count} errors");
+                DebugLogger.Log($"[UserScriptService] Update complete: {updated.Count} updated, {added.Count} new, {deleted.Count} deleted, {errors.Count} errors");
             }
             catch (Exception ex)
             {
@@ -336,7 +487,7 @@ namespace RebelShipBrowser.Services
                 DebugLogger.LogError($"[UserScriptService] {error}");
             }
 
-            return (updated, added, errors);
+            return (updated, added, deleted, errors);
         }
     }
 }

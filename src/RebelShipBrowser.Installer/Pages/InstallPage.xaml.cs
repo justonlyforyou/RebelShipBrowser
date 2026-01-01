@@ -93,6 +93,24 @@ namespace RebelShipBrowser.Installer.Pages
             // Create install directory
             Directory.CreateDirectory(installPath);
 
+            // Clear old bundled scripts before extraction (renamed/deleted scripts cleanup)
+            // User's enabled/disabled settings are preserved in UserScriptSettings.json
+            var bundledPath = InstallerSettings.BundledScriptsPath;
+            if (Directory.Exists(bundledPath))
+            {
+                try
+                {
+                    foreach (var file in Directory.GetFiles(bundledPath, "*.js"))
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+
             // Try to extract embedded payload
             var assembly = Assembly.GetExecutingAssembly();
             var resourceName = assembly.GetManifestResourceNames()

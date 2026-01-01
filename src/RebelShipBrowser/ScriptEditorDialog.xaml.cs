@@ -12,6 +12,11 @@ namespace RebelShipBrowser
         private readonly UserScript _script;
         private readonly UserScriptService _scriptService;
 
+        /// <summary>
+        /// Indicates if the script was saved during this session
+        /// </summary>
+        public bool ScriptSaved { get; private set; }
+
         public ScriptEditorDialog(UserScript script, UserScriptService scriptService)
         {
             ArgumentNullException.ThrowIfNull(script);
@@ -129,6 +134,7 @@ namespace RebelShipBrowser
             // Reload to parse metadata from the saved code
             _scriptService.LoadAllScripts();
 
+            ScriptSaved = true;
             StatusText.Text = "Saved!";
             Close();
         }

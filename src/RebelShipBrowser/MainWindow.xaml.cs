@@ -33,6 +33,7 @@ namespace RebelShipBrowser
         private bool _isClosingCompletely;
         private bool _webViewInitialized;
         private DispatcherTimer? _headerHideTimer;
+        private DispatcherTimer? _updateCheckTimer;
         private readonly UserScriptService _userScriptService = new();
 
         private static bool IsGpuEnabled
@@ -135,12 +136,27 @@ namespace RebelShipBrowser
             // Check for updates in background
             _ = CheckForUpdatesAsync();
 
+            // Start 15-minute update check timer
+            StartUpdateCheckTimer();
+
             await InitializeWithLoginDialogAsync();
             StartHeaderTimer();
         }
 
+        private void StartUpdateCheckTimer()
+        {
+            _updateCheckTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(15)
+            };
+            _updateCheckTimer.Tick += async (s, e) => await CheckForUpdatesAsync();
+            _updateCheckTimer.Start();
+            DebugLogger.Log("[UpdateCheck] Started 15-minute update check timer");
+        }
+
         private async Task CheckForUpdatesAsync()
         {
+            // Check browser updates
             try
             {
                 var updateAvailable = await UpdateService.CheckForUpdateAsync();
@@ -151,11 +167,26 @@ namespace RebelShipBrowser
                         UpdateButton.Content = $"Update to v{UpdateService.LatestVersion}";
                         UpdateButton.Visibility = Visibility.Visible;
                     });
+                    ShowTrayBalloon("Update Available", $"RebelShip Browser v{UpdateService.LatestVersion} is available!");
                 }
             }
             catch (Exception ex)
             {
-                DebugLogger.Log($"[UpdateCheck] Error: {ex.Message}");
+                DebugLogger.Log($"[UpdateCheck] Browser update error: {ex.Message}");
+            }
+
+            // Check script updates
+            try
+            {
+                var scriptUpdates = await _userScriptService.CheckForUpdatesAsync();
+                if (scriptUpdates > 0)
+                {
+                    ShowTrayBalloon("Script Updates", $"{scriptUpdates} script update(s) available. Open Script Manager to update.");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[UpdateCheck] Script update error: {ex.Message}");
             }
         }
 
@@ -714,6 +745,11 @@ namespace RebelShipBrowser
                 Owner = this
             };
             dialog.ShowDialog();
+
+            if (dialog.ScriptsChanged)
+            {
+                RefreshPage();
+            }
         }
 
         private void GpuToggleButton_Click(object sender, RoutedEventArgs e)
@@ -965,6 +1001,7 @@ namespace RebelShipBrowser
                 _trayMenu?.Dispose();
                 _headerHideTimer?.Stop();
                 _cookieMonitorTimer?.Stop();
+                _updateCheckTimer?.Stop();
             }
 
             _disposed = true;

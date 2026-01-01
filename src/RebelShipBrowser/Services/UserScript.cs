@@ -20,6 +20,12 @@ namespace RebelShipBrowser.Services
         public string? Description { get; set; }
         public string? Version { get; set; }
         public string? Author { get; set; }
+        public bool HasUpdate { get; set; }
+        public string? RemoteVersion { get; set; }
+        /// <summary>
+        /// Display and load order (1-999, default 500)
+        /// </summary>
+        public int Order { get; set; } = 500;
         public Collection<string> Match => new(_match);
         public Collection<string> Include => new(_include);
         public Collection<string> Exclude => new(_exclude);
@@ -103,6 +109,13 @@ namespace RebelShipBrowser.Services
             var enabled = ExtractMetaValue(metaBlock, "enabled");
             script.Enabled = !string.Equals(enabled, "false", StringComparison.OrdinalIgnoreCase);
 
+            // Parse @order (custom extension, 1-999, default 500)
+            var orderStr = ExtractMetaValue(metaBlock, "order");
+            if (int.TryParse(orderStr, out var order) && order >= 1 && order <= 999)
+            {
+                script.Order = order;
+            }
+
             return script;
         }
 
@@ -158,6 +171,11 @@ namespace RebelShipBrowser.Services
             if (!Enabled)
             {
                 lines.Add("// @enabled     false");
+            }
+
+            if (Order != 500)
+            {
+                lines.Add($"// @order       {Order}");
             }
 
             lines.Add("// ==/UserScript==");
