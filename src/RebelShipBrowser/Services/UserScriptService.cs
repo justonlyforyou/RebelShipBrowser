@@ -263,12 +263,16 @@ namespace RebelShipBrowser.Services
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("User-Agent", "RebelShipBrowser");
+            httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache, no-store");
+            httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
 
             foreach (var script in _scripts.Where(s => s.IsBundled))
             {
                 try
                 {
-                    var scriptUrl = new Uri(rawBaseUrl + script.FileName);
+                    // Use cache-busting query parameter to bypass GitHub CDN cache
+                    var cacheBuster = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    var scriptUrl = new Uri($"{rawBaseUrl}{script.FileName}?cb={cacheBuster}");
                     var remoteContent = await httpClient.GetStringAsync(scriptUrl);
 
                     // Extract version from remote content
@@ -364,6 +368,8 @@ namespace RebelShipBrowser.Services
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("User-Agent", "RebelShipBrowser");
+            httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache, no-store");
+            httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
 
             try
             {
@@ -421,8 +427,10 @@ namespace RebelShipBrowser.Services
 
                     try
                     {
-                        // Download raw script content
-                        var scriptUrl = new Uri(rawBaseUrl + fileName);
+                        // Download raw script content with cache-busting query parameter
+                        var cacheBuster = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                        var scriptUrl = new Uri($"{rawBaseUrl}{fileName}?cb={cacheBuster}");
+                        DebugLogger.Log($"[UserScriptService] Downloading: {scriptUrl}");
                         var scriptContent = await httpClient.GetStringAsync(scriptUrl);
 
                         // Check if file already exists
@@ -454,6 +462,8 @@ namespace RebelShipBrowser.Services
 
                             var remoteVersion = remoteVersionMatch.Success ? remoteVersionMatch.Groups[1].Value.Trim() : "0";
                             var localVersion = localVersionMatch.Success ? localVersionMatch.Groups[1].Value.Trim() : "0";
+
+                            DebugLogger.Log($"[UserScriptService] Comparing {fileName}: local='{localVersion}' remote='{remoteVersion}' isNewer={IsNewerVersion(remoteVersion, localVersion)}");
 
                             if (IsNewerVersion(remoteVersion, localVersion))
                             {
